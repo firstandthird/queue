@@ -1,0 +1,11 @@
+language: node_js
+node_js:
+  - 8
+
+services:
+  - mongodb
+
+env:
+  - TEST_DIR=test PORT=8080 MONGO_HOST=localhost
+
+script: cd $TEST_DIR && npm install && npm test
