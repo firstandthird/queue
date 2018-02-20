@@ -2,7 +2,7 @@ const tap = require('tap');
 const Queue = require('../');
 
 tap.test('create job', async (t) => {
-  const q = new Queue('mongodb://mongo:27017/queue', 'queue');
+  const q = new Queue('mongodb://localhost:27017/queue', 'queue');
   await q.start();
 
   t.throws(() => {

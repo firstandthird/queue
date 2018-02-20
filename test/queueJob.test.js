@@ -4,7 +4,7 @@ const { promisify } = require('util');
 const wait = setTimeout[promisify.custom];
 
 tap.test('queue job', async (t) => {
-  const q = new Queue('mongodb://mongo:27017/queue', 'queue', 50);
+  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 50);
   await q.start();
 
   let jobRun = false;
