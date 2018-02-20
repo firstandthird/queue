@@ -6,6 +6,6 @@ services:
   - mongodb
 
 env:
-  - TEST_DIR=test PORT=8080 MONGO_HOST=localhost
+  - TEST_DIR=test PORT=8080 MONGO_HOST=mongo
 
 script: cd $TEST_DIR && npm install && npm test
