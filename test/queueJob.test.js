@@ -200,6 +200,61 @@ tap.test('queue job - no payload validation', async (t) => {
   t.end();
 });
 
+tap.test('queue job - no payload validation', async (t) => {
+  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 50);
+  await q.start();
+
+  let jobRun = false;
+  let queueSet = false;
+  let jobSet = false;
+
+  const job = {
+    name: 'testJob',
+    process(data, queue, j) {
+      jobRun = data.foo;
+      queueSet = typeof queue.jobs === 'object';
+      jobSet = typeof j === 'object' && j.name === 'testJob';
+    }
+  };
+
+  q.createJob(job);
+
+  await q.db.remove({});
+
+  await t.resolves(q.queueJob({
+    name: 'testJob',
+    payload: {
+      foo: 1234
+    }
+  }), 'Queues up job');
+
+  await wait(1000);
+
+  t.equal(jobRun, 1234, 'job ran');
+  t.ok(queueSet, 'queue passed in');
+  t.ok(jobSet, 'job passed in');
+
+  const runJobs = await q.db.find().toArray();
+
+  const result = q.Joi.validate(runJobs, q.Joi.array().items({
+    _id: q.Joi.object().required(),
+    payload: q.Joi.object().required(),
+    name: q.Joi.string().required(),
+    runAfter: q.Joi.date().required(),
+    id: q.Joi.only(null).required(),
+    createdOn: q.Joi.date().required(),
+    status: q.Joi.only('completed').required(),
+    startTime: q.Joi.date().required(),
+    endTime: q.Joi.date().required(),
+    error: q.Joi.only(null).required()
+  }).length(1));
+
+  t.error(result.error, 'job updated');
+
+  await q.stop();
+  t.end();
+});
+
 tap.test('queue - multiple job', async (t) => {
   const q = new Queue('mongodb://localhost:27017/queue', 'queue', 50);
   await q.start();

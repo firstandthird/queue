@@ -150,7 +150,7 @@ class Queue {
     let error = null;
 
     try {
-      await this.jobs[job.name].process(job.payload);
+      await this.jobs[job.name].process(job.payload, this, job);
     } catch (err) {
       error = JSON.stringify(err, Object.getOwnPropertyNames(err));
       status = 'failed';
