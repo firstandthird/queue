@@ -1,5 +1,5 @@
 {
-  "name": "queue",
+  "name": "@firstandthird/queue",
   "version": "1.0.0",
   "description": "simple job queue",
   "main": "index.js",

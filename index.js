@@ -4,10 +4,10 @@ const { promisify } = require('util');
 const wait = setTimeout[promisify.custom];
 
 class Queue {
-  constructor(mongoUrl, collection, waitDelay = 500) {
+  constructor(mongoUrl, collectionName, waitDelay = 500) {
     this.jobs = {};
     this.mongoUrl = mongoUrl;
-    this.collection = collection;
+    this.collectionName = collectionName;
     this.waitDelay = waitDelay;
     this.conn = null;
     this.db = null;
@@ -17,15 +17,15 @@ class Queue {
       throw new Error('mongoUrl not set');
     }
 
-    if (!this.collection) {
-      throw new Error('collection not set');
+    if (!this.collectionName) {
+      throw new Error('collectionName not set');
     }
   }
 
   async start() {
     this.exiting = false;
     this.conn = await MongoClient.connect(this.mongoUrl);
-    this.db = await this.conn.collection(this.collection);
+    this.db = await this.conn.collection(this.collectionName);
     await this.process();
   }
 
@@ -59,7 +59,7 @@ class Queue {
       throw new Error('Job name not set');
     }
 
-    if (typeof job.payloadValidation !== 'object' && typeof payloadValidation !== 'undefined') {
+    if (typeof job.payloadValidation !== 'object' && typeof job.payloadValidation !== 'undefined') {
       throw new Error('payloadValidation needs to be an object');
     }
 
@@ -150,9 +150,9 @@ class Queue {
     let error = null;
 
     try {
-      await this.jobs[job.name].process(this.jobs);
+      await this.jobs[job.name].process(job.payload);
     } catch (err) {
-      error = err;
+      error = JSON.stringify(err, Object.getOwnPropertyNames(err));
       status = 'failed';
     }
 
@@ -179,17 +179,21 @@ class Queue {
   }
 
   getJobQueue(status = 'waiting') {
-    return this.db.find({ status });
+    return this.db.find({ status }).toArray();
   }
 
   async stats(since) {
+    if (!since) {
+      since = new Date().getTime() - (24 * 3600);
+    }
+
     since = new Date(since);
     // TODO make aggregate
-    const waiting = await this.db.count({ status: 'waiting', createdOn: { $lt: since } });
-    const processing = await this.db.count({ status: 'processing', createdOn: { $lt: since } });
-    const cancelled = await this.db.count({ status: 'cancelled', createdOn: { $lt: since } });
-    const failed = await this.db.count({ status: 'failed', createdOn: { $lt: since } });
-    const completed = await this.db.count({ status: 'completed', createdOn: { $lt: since } });
+    const waiting = await this.db.count({ status: 'waiting', createdOn: { $gt: since } });
+    const processing = await this.db.count({ status: 'processing', createdOn: { $gt: since } });
+    const cancelled = await this.db.count({ status: 'cancelled', createdOn: { $gt: since } });
+    const failed = await this.db.count({ status: 'failed', createdOn: { $gt: since } });
+    const completed = await this.db.count({ status: 'completed', createdOn: { $gt: since } });
 
     return { waiting, processing, cancelled, failed, completed };
   }
