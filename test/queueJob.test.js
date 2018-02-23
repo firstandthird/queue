@@ -4,9 +4,10 @@ const { promisify } = require('util');
 const wait = setTimeout[promisify.custom];
 
 tap.test('queue job', async (t) => {
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 50);
+  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 500);
   await q.start();
 
+  let gate = true;
   let jobRun = false;
 
   const job = {
@@ -15,8 +16,16 @@ tap.test('queue job', async (t) => {
       foo: 'bar'
     }),
     async process(data) {
-      await wait(500);
-      jobRun = data.foo;
+      // this will keep running while we test 'processing' status
+      // it will exit when 'gate' is turned off, after which we can test 'completion' status:
+      const finish = async() => {
+        if (gate) {
+          await wait(300);
+          return finish();
+        }
+        jobRun = data.foo;
+      };
+      await finish();
     }
   };
 
@@ -40,7 +49,8 @@ tap.test('queue job', async (t) => {
     name: 'testJob',
     payload: {
       foo: 'bar'
-    }
+    },
+
   }), 'Queues up job');
 
   const jobs = await q.db.find().toArray();
@@ -60,7 +70,7 @@ tap.test('queue job', async (t) => {
 
   t.error(result.error, 'item validation does not error');
 
-  await wait(100);
+  await wait(2000);
 
   t.notOk(jobRun, 'Job still not run');
 
@@ -81,6 +91,8 @@ tap.test('queue job', async (t) => {
 
   t.error(result2.error, 'job processing');
 
+  // ungate it now and wait for it to complete processing:
+  gate = !gate;
   await wait(2000);
 
   t.equal(jobRun, 'bar', 'Job appears to have run');
