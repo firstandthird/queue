@@ -2,6 +2,8 @@ const Joi = require('joi');
 const { MongoClient } = require('mongodb');
 const { promisify } = require('util');
 const wait = setTimeout[promisify.custom];
+const fs = require('fs');
+const path = require('path');
 
 class Queue {
   constructor(mongoUrl, collectionName, waitDelay = 500) {
@@ -68,6 +70,16 @@ class Queue {
     }
 
     this.jobs[job.name] = job;
+  }
+
+  createJobs(jobsDir) {
+    if (!fs.existsSync(jobsDir)) {
+      throw new Error(`Path ${jobsDir} does not exist`);
+    }
+    fs.readdirSync(jobsDir).forEach(configFile => {
+      const job = require(path.join(jobsDir, configFile));
+      this.createJob(job);
+    });
   }
 
   async queueJob(data) {
