@@ -74,7 +74,7 @@ tap.test('create job', async (t) => {
   t.end();
 });
 
-tap.test('create multiple jobs from file', async (t) => {
+tap.test('createJobs can load multiple jobs from a directory', async (t) => {
   const jobsDir = path.join(__dirname, 'jobs');
   const q = new Queue('mongodb://localhost:27017/queue', 'queue');
   await q.start();
