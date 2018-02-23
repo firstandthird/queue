@@ -1,5 +1,6 @@
 const tap = require('tap');
 const Queue = require('../');
+const path = require('path');
 
 tap.test('create job', async (t) => {
   const q = new Queue('mongodb://localhost:27017/queue', 'queue');
@@ -69,6 +70,37 @@ tap.test('create job', async (t) => {
     testJob: job
   }, 'Job added to this.jobs');
 
+  await q.stop();
+  t.end();
+});
+
+tap.test('createJobs can load multiple jobs from a directory', async (t) => {
+  const jobsDir = path.join(__dirname, 'jobs');
+  const q = new Queue('mongodb://localhost:27017/queue', 'queue');
+  await q.start();
+  await q.db.remove({});
+  t.throws(() => {
+    q.createJobs('not a real path');
+  });
+  t.doesNotThrow(() => {
+    q.createJobs(jobsDir);
+  });
+
+  t.isLike(q.jobs.job2, { name: 'job2', payload: {}, payloadValidation: {} }, `jobs were loaded from ${jobsDir}`);
+  t.isLike(q.jobs.job1, { name: 'job1', payload: {}, payloadValidation: {} }, `jobs were loaded from ${jobsDir}`);
+  await q.queueJob({
+    name: 'job1',
+    payload: {}
+  });
+  const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+  await wait(1000);
+  const jobs = await q.db.find({}).toArray();
+  t.isLike(jobs[0], {
+    payload: {},
+    name: 'job1',
+    status: 'completed',
+    error: null
+  }, 'was able to process the job successfully');
   await q.stop();
   t.end();
 });
