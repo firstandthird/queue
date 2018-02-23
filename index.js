@@ -2,9 +2,11 @@ const Joi = require('joi');
 const { MongoClient } = require('mongodb');
 const { promisify } = require('util');
 const wait = setTimeout[promisify.custom];
+const EventEmitter = require('events');
 
-class Queue {
+class Queue extends EventEmitter {
   constructor(mongoUrl, collectionName, waitDelay = 500) {
+    super();
     this.jobs = {};
     this.mongoUrl = mongoUrl;
     this.collectionName = collectionName;
@@ -38,10 +40,13 @@ class Queue {
     if (this.exiting) {
       return;
     }
+    // notify event listeners that we are processing:
+    this.emit('process');
 
     const job = await this.getJob();
 
     if (!job || !job.value) {
+      this.emit('queue.empty');
       await wait(this.waitDelay);
     } else {
       await this.runJob(job.value);
@@ -91,7 +96,6 @@ class Queue {
       if (response.error) {
         throw response.error;
       }
-
       data.payload = response.value;
     }
 
@@ -110,7 +114,6 @@ class Queue {
       endTime: null,
       error: null
     };
-
     if (data.id) {
       await this.db.update({
         id: data.id,
@@ -123,6 +126,8 @@ class Queue {
     } else {
       await this.db.insert(jobData);
     }
+    // notify event listeners that a job has been queued
+    this.emit('queue', jobData);
   }
 
   async getJob() {
@@ -141,7 +146,6 @@ class Queue {
       },
       returnOriginal: false
     });
-
     return job;
   }
 
@@ -150,10 +154,13 @@ class Queue {
     let error = null;
 
     try {
-      await this.jobs[job.name].process(job.payload, this, job);
+      const result = await this.jobs[job.name].process(job.payload, this, job);
+      // 'finish' event handlers get the job and the return value of job.process:
+      this.emit('finish', job, result);
     } catch (err) {
       error = JSON.stringify(err, Object.getOwnPropertyNames(err));
-      status = 'failed';
+      job.status = status = 'failed';
+      this.emit('error', job, err);
     }
 
     this.db.update({
@@ -168,7 +175,7 @@ class Queue {
   }
 
   cancelJob(jobId) {
-    return this.db.update({
+    this.db.update({
       id: jobId,
       status: 'waiting'
     }, {
@@ -176,6 +183,7 @@ class Queue {
         status: 'cancelled'
       }
     });
+    this.emit('cancel', jobId);
   }
 
   getJobQueue(status = 'waiting') {
