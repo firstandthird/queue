@@ -4,9 +4,10 @@ const { promisify } = require('util');
 const wait = setTimeout[promisify.custom];
 const fs = require('fs');
 const path = require('path');
+const pTimes = require('p-times');
 
 class Queue {
-  constructor(mongoUrl, collectionName, waitDelay = 500) {
+  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1) {
     this.jobs = {};
     this.mongoUrl = mongoUrl;
     this.collectionName = collectionName;
@@ -14,6 +15,7 @@ class Queue {
     this.conn = null;
     this.db = null;
     this.Joi = Joi;
+    this.maxThreads = maxThreads;
 
     if (!this.mongoUrl) {
       throw new Error('mongoUrl not set');
@@ -28,7 +30,7 @@ class Queue {
     this.exiting = false;
     this.conn = await MongoClient.connect(this.mongoUrl);
     this.db = await this.conn.collection(this.collectionName);
-    await this.process();
+    await pTimes(this.maxThreads, this.process.bind(this));
   }
 
   async stop() {

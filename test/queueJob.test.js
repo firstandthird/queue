@@ -28,7 +28,6 @@ tap.test('queue job', async (t) => {
       await finish();
     }
   };
-
   q.createJob(job);
 
   await q.db.remove({});
@@ -267,12 +266,12 @@ tap.test('queue job - no payload validation', async (t) => {
   t.end();
 });
 
-tap.test('queue - multiple job', async (t) => {
+tap.test('queue - multiple jobs run sequentially (concurrentCount = 1)', async (t) => {
   const q = new Queue('mongodb://localhost:27017/queue', 'queue', 50);
   await q.start();
 
   let jobRun = false;
-
+  const finishTimes = [];
   const job = {
     name: 'testJob',
     payloadValidation: q.Joi.object().keys({
@@ -280,6 +279,8 @@ tap.test('queue - multiple job', async (t) => {
     }),
     async process(data) {
       await wait(500);
+      // get the time the job was completed:
+      finishTimes.push(new Date().getTime());
       jobRun = true;
     }
   };
@@ -305,6 +306,9 @@ tap.test('queue - multiple job', async (t) => {
   await wait(3000);
 
   t.ok(jobRun, 'Job appears to have run');
+  const processingDelay = Math.abs(finishTimes[0] - finishTimes[1]);
+
+  t.equal(processingDelay > 500, true, 'second job processed after first job completed');
 
   const runJobs = await q.db.find().toArray();
 
@@ -560,6 +564,71 @@ tap.test('queue - update job', async (t) => {
   }).length(1));
 
   t.error(result.error, 'job updated');
+
+  await q.stop();
+  t.end();
+});
+
+tap.test('queue - multiple concurrent jobs (concurrentCount > 1)', async (t) => {
+  // queue initialized with up to 5 concurrent processes allowed:
+  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 50, 5);
+  await q.start();
+
+  let jobRun = false;
+  const finishTimes = [];
+  const job = {
+    name: 'testJob',
+    payloadValidation: q.Joi.object().keys({
+      foo: 'bar'
+    }),
+    async process(data) {
+      await wait(500);
+      // get the time this was completed:
+      finishTimes.push(new Date().getTime());
+      jobRun = true;
+    }
+  };
+
+  q.createJob(job);
+
+  await q.db.remove({});
+
+  await t.resolves(q.queueJob({
+    name: 'testJob',
+    payload: {
+      foo: 'bar'
+    }
+  }), 'Queues up job');
+
+  await t.resolves(q.queueJob({
+    name: 'testJob',
+    payload: {
+      foo: 'bar'
+    }
+  }), 'Queues up second job');
+
+  await wait(3000);
+  const processingDelay = Math.abs(finishTimes[0] - finishTimes[1]);
+
+  t.ok(jobRun, 'Job appears to have run');
+  t.equal(processingDelay < 500, true, 'did not wait for first job to complete before processing second one');
+
+  const runJobs = await q.db.find().toArray();
+
+  const result3 = q.Joi.validate(runJobs, q.Joi.array().items({
+    _id: q.Joi.object().required(),
+    payload: q.Joi.object().required(),
+    name: q.Joi.string().required(),
+    runAfter: q.Joi.date().required(),
+    id: q.Joi.only(null).required(),
+    createdOn: q.Joi.date().required(),
+    status: q.Joi.only('completed').required(),
+    startTime: q.Joi.date().required(),
+    endTime: q.Joi.date().required(),
+    error: q.Joi.only(null).required()
+  }).length(2));
+
+  t.error(result3.error, 'job updated');
 
   await q.stop();
   t.end();
