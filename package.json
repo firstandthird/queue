@@ -21,6 +21,7 @@
   "//": "Using older mongodb because of this: https://github.com/Marsup/hapi-mongodb/issues/38",
   "dependencies": {
     "joi": "^13.1.2",
-    "mongodb": "^2.x.x"
+    "mongodb": "^2.x.x",
+    "p-times": "^1.0.1"
   }
 }
