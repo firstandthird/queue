@@ -633,3 +633,63 @@ tap.test('queue - update job', async (t) => {
   await q.stop();
   t.end();
 });
+
+tap.test('jobs that process long than max expiration time are errored', async (t) => {
+  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 500, 3);
+  await q.start();
+  await q.db.remove({});
+  const suspendedJob = {
+    name: 'suspendedJob',
+    payloadValidation: q.Joi.object().keys({
+      foo: 'bar'
+    }),
+    async process(data) {
+      await wait(1000000);
+    }
+  };
+
+  q.createJob(suspendedJob);
+
+  const goodJob = {
+    name: 'goodJob',
+    payloadValidation: q.Joi.object().keys({
+      foo: 'bar'
+    }),
+    async process(data) {
+      await wait(1);
+      return 'I finished right away';
+    }
+  };
+
+  q.createJob(goodJob);
+
+  await q.queueJob({
+    name: 'suspendedJob',
+    payload: {
+      foo: 'bar'
+    }
+  });
+  await q.queueJob({
+    name: 'goodJob',
+    payload: {
+      foo: 'bar'
+    }
+  });
+
+  await wait(7000);
+
+  const good = await q.db.findOne({ status: 'completed' });
+  const bad = await q.db.findOne({ status: 'failed' });
+  t.isLike(bad, {
+    payload: { foo: 'bar' },
+    name: 'suspendedJob',
+    id: null
+  });
+  t.isLike(good, {
+    payload: { foo: 'bar' },
+    name: 'goodJob',
+    id: null
+  });
+  await q.stop();
+  t.end();
+});

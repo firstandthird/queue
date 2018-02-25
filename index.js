@@ -5,9 +5,10 @@ const wait = setTimeout[promisify.custom];
 const fs = require('fs');
 const path = require('path');
 const pTimes = require('p-times');
+const pTimeout = require('p-timeout');
 
 class Queue {
-  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1) {
+  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1, maxSeconds = 300) {
     this.jobs = {};
     this.mongoUrl = mongoUrl;
     this.collectionName = collectionName;
@@ -16,7 +17,7 @@ class Queue {
     this.db = null;
     this.Joi = Joi;
     this.maxThreads = maxThreads;
-
+    this.maxSeconds = maxSeconds;
     if (!this.mongoUrl) {
       throw new Error('mongoUrl not set');
     }
@@ -164,7 +165,7 @@ class Queue {
     let error = null;
 
     try {
-      await this.jobs[job.name].process(job.payload, this, job);
+      await pTimeout(this.jobs[job.name].process(job.payload, this, job), this.maxSeconds * 1000);
     } catch (err) {
       error = JSON.stringify(err, Object.getOwnPropertyNames(err));
       status = 'failed';
