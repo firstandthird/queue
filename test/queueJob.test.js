@@ -165,7 +165,7 @@ tap.test('queue job - no payload validation', async (t) => {
     runAfter: q.Joi.date().required(),
     id: q.Joi.only(null).required(),
     createdOn: q.Joi.date().required(),
-    status: q.Joi.only('waiting', 'processing').required(),
+    status: q.Joi.only('waiting').required(),
     startTime: q.Joi.only(null).required(),
     endTime: q.Joi.only(null).required(),
     error: q.Joi.only(null).required()
