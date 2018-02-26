@@ -5,9 +5,11 @@ const wait = setTimeout[promisify.custom];
 const fs = require('fs');
 const path = require('path');
 const pTimes = require('p-times');
+const EventEmitter = require('events');
 
-class Queue {
+class Queue extends EventEmitter {
   constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1) {
+    super();
     this.jobs = {};
     this.mongoUrl = mongoUrl;
     this.collectionName = collectionName;
@@ -46,9 +48,11 @@ class Queue {
     const job = await this.getJob();
 
     if (!job || !job.value) {
+      this.emit('queue.empty');
       await wait(this.waitDelay);
     } else {
       await this.runJob(job.value);
+      this.emit('process', job.value);
     }
 
     this.process();
@@ -58,7 +62,6 @@ class Queue {
     if (typeof job !== 'object') {
       throw new Error('Job must be an object');
     }
-
     if (typeof job.name !== 'string' || !job.name.length) {
       throw new Error('Job name not set');
     }
@@ -70,7 +73,6 @@ class Queue {
     if (typeof job.process !== 'function') {
       throw new Error('Job must have a process method');
     }
-
     this.jobs[job.name] = job;
   }
 
@@ -137,6 +139,7 @@ class Queue {
     } else {
       await this.db.insert(jobData);
     }
+    this.emit('queue', jobData);
   }
 
   async getJob() {
@@ -165,16 +168,21 @@ class Queue {
 
     try {
       await this.jobs[job.name].process(job.payload, this, job);
+      status = job.status = 'completed';
+      job.endTime = new Date();
+      this.emit('finish', job);
     } catch (err) {
       error = JSON.stringify(err, Object.getOwnPropertyNames(err));
-      status = 'failed';
+      status = job.status = 'failed';
+      job.endTime = new Date();
+      this.emit('error', job, err);
     }
 
     this.db.update({
       _id: job._id
     }, {
       $set: {
-        endTime: new Date(),
+        endTime: job.endTime,
         status,
         error
       }
@@ -182,6 +190,7 @@ class Queue {
   }
 
   cancelJob(jobId) {
+    this.emit('cancel', jobId);
     return this.db.update({
       id: jobId,
       status: 'waiting'
