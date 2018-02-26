@@ -118,16 +118,24 @@ tap.test('queue job', async (t) => {
 });
 
 tap.test('queue job - no payload validation', async (t) => {
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 50);
+  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 500);
   await q.start();
 
   let jobRun = false;
-
+  let gate = true;
   const job = {
     name: 'testJob',
     async process(data) {
-      await wait(500);
-      jobRun = data.foo;
+      // this will keep running while we test 'processing' status
+      // it will exit when 'gate' is turned off, after which we can test 'completion' status:
+      const finish = async() => {
+        if (gate) {
+          await wait(300);
+          return finish();
+        }
+        jobRun = data.foo;
+      };
+      await finish();
     }
   };
 
@@ -157,7 +165,7 @@ tap.test('queue job - no payload validation', async (t) => {
     runAfter: q.Joi.date().required(),
     id: q.Joi.only(null).required(),
     createdOn: q.Joi.date().required(),
-    status: q.Joi.only('waiting').required(),
+    status: q.Joi.only('waiting', 'processing').required(),
     startTime: q.Joi.only(null).required(),
     endTime: q.Joi.only(null).required(),
     error: q.Joi.only(null).required()
@@ -165,7 +173,7 @@ tap.test('queue job - no payload validation', async (t) => {
 
   t.error(result.error, 'item validation does not error');
 
-  await wait(100);
+  await wait(1500);
 
   t.notOk(jobRun, 'Job still not run');
 
@@ -185,6 +193,9 @@ tap.test('queue job - no payload validation', async (t) => {
   }).length(1));
 
   t.error(result2.error, 'job processing');
+
+  // let the process end:
+  gate = false;
 
   await wait(2000);
 
@@ -266,7 +277,7 @@ tap.test('queue job - no payload validation', async (t) => {
   t.end();
 });
 
-tap.test('queue - multiple jobs run sequentially (concurrentCount = 1)', async (t) => {
+tap.test('queue - multiple jobs run sequentially (concurrentcount = 1)', async (t) => {
   const q = new Queue('mongodb://localhost:27017/queue', 'queue', 50);
   await q.start();
 
@@ -399,7 +410,6 @@ tap.test('queue - multiple concurrent jobs (concurrentCount > 1)', async (t) => 
 tap.test('queue - handles errors in job', async (t) => {
   const q = new Queue('mongodb://localhost:27017/queue', 'queue', 50);
   await q.start();
-
   let jobRun = false;
 
   const job = {
@@ -407,8 +417,9 @@ tap.test('queue - handles errors in job', async (t) => {
     payloadValidation: q.Joi.object().keys({
       foo: 'bar'
     }),
-    process(data) {
+    async process(data) {
       jobRun = true;
+      await wait(1);
       throw new Error('test error');
     }
   };

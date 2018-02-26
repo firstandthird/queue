@@ -115,7 +115,7 @@ tap.test('completing job processing emits "finish" event', async (t) => {
   t.end();
 });
 
-tap.test('errors during processing emit the "error" event', async (t) => {
+tap.test('errors during processing emit the "failed" event', async (t) => {
   const q = new Queue('mongodb://localhost:27017/queue', 'queue', 500);
   await q.start();
   await q.db.remove({});
@@ -133,7 +133,7 @@ tap.test('errors during processing emit the "error" event', async (t) => {
   q.createJob(job);
   let badJob = false;
   let jobError = false;
-  q.on('error', (eventJob, eventError) => {
+  q.on('failed', (eventJob, eventError) => {
     badJob = eventJob;
     jobError = eventError;
   });

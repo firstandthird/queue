@@ -175,9 +175,8 @@ class Queue extends EventEmitter {
       error = JSON.stringify(err, Object.getOwnPropertyNames(err));
       status = job.status = 'failed';
       job.endTime = new Date();
-      this.emit('error', job, err);
+      this.emit('failed', job, err);
     }
-
     this.db.update({
       _id: job._id
     }, {
