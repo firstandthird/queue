@@ -18,6 +18,7 @@ class Queue extends EventEmitter {
     this.db = null;
     this.Joi = Joi;
     this.maxThreads = maxThreads;
+    this.bound = {};
 
     if (!this.mongoUrl) {
       throw new Error('mongoUrl not set');
@@ -56,6 +57,10 @@ class Queue extends EventEmitter {
     }
 
     this.process();
+  }
+
+  bind(obj) {
+    this.bound = obj;
   }
 
   createJob(job) {
@@ -167,7 +172,7 @@ class Queue extends EventEmitter {
     let error = null;
 
     try {
-      await this.jobs[job.name].process(job.payload, this, job);
+      await this.jobs[job.name].process.call(this.bound, job.payload, this, job);
       status = job.status = 'completed';
       job.endTime = new Date();
       this.emit('finish', job);
