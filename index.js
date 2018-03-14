@@ -51,8 +51,8 @@ class Queue extends EventEmitter {
       this.emit('queue.empty');
       await wait(this.waitDelay);
     } else {
-      await this.runJob(job.value);
       this.emit('process', job.value);
+      await this.runJob(job.value);
     }
 
     this.process();
