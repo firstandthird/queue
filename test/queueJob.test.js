@@ -3,8 +3,9 @@ const Queue = require('../');
 const { promisify } = require('util');
 const wait = setTimeout[promisify.custom];
 
+const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
 tap.test('queue job', async (t) => {
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 500);
+  const q = new Queue(mongoUrl, 'queue', 500);
   await q.start();
 
   let gate = true;
@@ -118,7 +119,7 @@ tap.test('queue job', async (t) => {
 });
 
 tap.test('queue job - no payload validation', async (t) => {
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 500);
+  const q = new Queue(mongoUrl, 'queue', 500);
   await q.start();
 
   let jobRun = false;
@@ -223,7 +224,7 @@ tap.test('queue job - no payload validation', async (t) => {
 });
 
 tap.test('queue job - no payload validation', async (t) => {
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 50);
+  const q = new Queue(mongoUrl, 'queue', 50);
   await q.start();
 
   let jobRun = false;
@@ -278,7 +279,7 @@ tap.test('queue job - no payload validation', async (t) => {
 });
 
 tap.test('queue - multiple jobs run sequentially (concurrentcount = 1)', async (t) => {
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 50);
+  const q = new Queue(mongoUrl, 'queue', 50);
   await q.start();
 
   let jobRun = false;
@@ -344,7 +345,7 @@ tap.test('queue - multiple jobs run sequentially (concurrentcount = 1)', async (
 
 tap.test('queue - multiple concurrent jobs (concurrentCount > 1)', async (t) => {
   // queue initialized with up to 5 concurrent processes allowed:
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 50, 5);
+  const q = new Queue(mongoUrl, 'queue', 50, 5);
   await q.start();
 
   let jobRun = false;
@@ -408,7 +409,7 @@ tap.test('queue - multiple concurrent jobs (concurrentCount > 1)', async (t) => 
 });
 
 tap.test('queue - handles errors in job', async (t) => {
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 50);
+  const q = new Queue(mongoUrl, 'queue', 50);
   await q.start();
   let jobRun = false;
 
@@ -464,7 +465,7 @@ tap.test('queue - handles errors in job', async (t) => {
 });
 
 tap.test('queue - runAfter', async (t) => {
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 50);
+  const q = new Queue(mongoUrl, 'queue', 50);
   await q.start();
 
   let jobRun = false;
@@ -521,7 +522,7 @@ tap.test('queue - runAfter', async (t) => {
 });
 
 tap.test('queue - cancelJob', async (t) => {
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 50);
+  const q = new Queue(mongoUrl, 'queue', 50);
   await q.start();
 
   let jobRun = false;
@@ -581,7 +582,7 @@ tap.test('queue - cancelJob', async (t) => {
 });
 
 tap.test('queue - update job', async (t) => {
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 50);
+  const q = new Queue(mongoUrl, 'queue', 50);
   await q.start();
 
   let jobRun = false;

@@ -1,0 +1,13 @@
+app:
+  image: 'firstandthird/node:8.9-3-dev'
+  volumes:
+    - ".:/home/app/src"
+  environment:
+    MONGO_URL: 'mongodb://mongo:27017/queue'
+    NPM_CMD: 'test'
+    FORCE_COLOR: 1
+  links:
+    - 'db:mongo'
+db:
+  image: 'mongo'
+  command: 'mongod --smallfiles --quiet'

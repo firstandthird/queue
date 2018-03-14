@@ -3,8 +3,9 @@ const Queue = require('../');
 const { promisify } = require('util');
 const wait = setTimeout[promisify.custom];
 
+const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
 tap.test('queueing a job emits "queue" event', async (t) => {
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 5000);
+  const q = new Queue(mongoUrl, 'queue', 5000);
   await q.start();
   await q.db.remove({});
   const job = {
@@ -40,7 +41,7 @@ tap.test('queueing a job emits "queue" event', async (t) => {
 });
 
 tap.test('processing a job emits "process" event', async (t) => {
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 1000);
+  const q = new Queue(mongoUrl, 'queue', 1000);
   await q.start();
   await q.db.remove({});
 
@@ -73,7 +74,7 @@ tap.test('processing a job emits "process" event', async (t) => {
 });
 
 tap.test('completing job processing emits "finish" event', async (t) => {
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 500);
+  const q = new Queue(mongoUrl, 'queue', 500);
   await q.start();
   await q.db.remove({});
 
@@ -116,7 +117,7 @@ tap.test('completing job processing emits "finish" event', async (t) => {
 });
 
 tap.test('errors during processing emit the "failed" event', async (t) => {
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 500);
+  const q = new Queue(mongoUrl, 'queue', 500);
   await q.start();
   await q.db.remove({});
 
@@ -158,7 +159,7 @@ tap.test('errors during processing emit the "failed" event', async (t) => {
 });
 
 tap.test('cancelling a job emits the "cancel" event', async (t) => {
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 500);
+  const q = new Queue(mongoUrl, 'queue', 500);
   await q.start();
   await q.db.remove({});
 
@@ -193,7 +194,7 @@ tap.test('cancelling a job emits the "cancel" event', async (t) => {
 });
 
 tap.test('when no jobs left in queue fire the "queue empty" event', async (t) => {
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 500);
+  const q = new Queue(mongoUrl, 'queue', 500);
   await q.start();
   await q.db.remove({});
   let empty = false;

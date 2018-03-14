@@ -2,8 +2,9 @@ const tap = require('tap');
 const Queue = require('../');
 const path = require('path');
 
+const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
 tap.test('create job', async (t) => {
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue');
+  const q = new Queue(mongoUrl, 'queue');
   await q.start();
 
   t.throws(() => {
@@ -76,7 +77,7 @@ tap.test('create job', async (t) => {
 
 tap.test('createJobs can load multiple jobs from a directory', async (t) => {
   const jobsDir = path.join(__dirname, 'jobs');
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue');
+  const q = new Queue(mongoUrl, 'queue');
   await q.start();
   await q.db.remove({});
   t.throws(() => {
