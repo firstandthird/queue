@@ -645,3 +645,41 @@ tap.test('queue - update job', async (t) => {
   await q.stop();
   t.end();
 });
+
+tap.test('queue - jobs can be bound to object (this === server)', async (t) => {
+  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 50);
+  await q.start();
+  const thisObject = {
+    name: 'this'
+  };
+  q.bind(thisObject);
+
+  let jobRun = false;
+  const job = {
+    name: 'testJob',
+    payloadValidation: q.Joi.object().keys({
+      foo: 'bar'
+    }),
+    process(data) {
+      t.equal(this, thisObject, '"this" is bound to  the object');
+      jobRun = true;
+    }
+  };
+
+  q.createJob(job);
+
+  await q.db.remove({});
+
+  await t.resolves(q.queueJob({
+    name: 'testJob',
+    payload: {
+      foo: 'bar'
+    }
+  }), 'Queues up job');
+
+  await wait(3000);
+
+  t.ok(jobRun);
+  await q.stop();
+  t.end();
+});
