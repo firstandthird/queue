@@ -269,6 +269,7 @@ tap.test('queue job - no payload validation', async (t) => {
     status: q.Joi.only('completed').required(),
     startTime: q.Joi.date().required(),
     endTime: q.Joi.date().required(),
+    duration: q.Joi.number().required(),
     error: q.Joi.only(null).required()
   }).length(1));
 
@@ -512,7 +513,6 @@ tap.test('queue - runAfter', async (t) => {
     status: q.Joi.only('completed').required(),
     startTime: q.Joi.date().required(),
     endTime: q.Joi.date().required(),
-    duration: q.Joi.number().required(),
     error: q.Joi.only(null).required()
   }).length(1));
 
