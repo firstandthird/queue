@@ -182,6 +182,7 @@ class Queue extends EventEmitter {
       error = JSON.stringify(err, Object.getOwnPropertyNames(err));
       status = job.status = 'failed';
       job.endTime = new Date();
+      job.duration = job.endTime.getTime() - job.startTime.getTime();
       this.emit('failed', job, err);
     }
     this.db.update({
@@ -189,6 +190,7 @@ class Queue extends EventEmitter {
     }, {
       $set: {
         endTime: job.endTime,
+        duration: job.duration,
         status,
         error
       }
