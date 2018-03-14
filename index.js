@@ -176,6 +176,7 @@ class Queue extends EventEmitter {
       await this.jobs[job.name].process.call(this.bound, job.payload, this, job);
       status = job.status = 'completed';
       job.endTime = new Date();
+      job.duration = job.endTime.getTime() - job.startTime.getTime();
       this.emit('finish', job);
     } catch (err) {
       error = JSON.stringify(err, Object.getOwnPropertyNames(err));
