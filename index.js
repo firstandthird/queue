@@ -80,6 +80,7 @@ class Queue extends EventEmitter {
       throw new Error('Job must have a process method');
     }
     this.jobs[job.name] = job;
+    this.emit('job.create', job);
   }
 
   createJobs(jobsDir) {
