@@ -1,1 +1,1 @@
-# queue
+# queue [![Build Status](https://travis-ci.org/firstandthird/queue.svg?branch=master)](https://travis-ci.org/firstandthird/queue) [![Coverage Status](https://coveralls.io/repos/github/firstandthird/queue/badge.svg?branch=master)](https://coveralls.io/github/firstandthird/queue?branch=master)
