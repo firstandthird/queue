@@ -33,6 +33,7 @@ class Queue extends EventEmitter {
     this.exiting = false;
     this.conn = await MongoClient.connect(this.mongoUrl);
     this.db = await this.conn.collection(this.collectionName);
+    this.db.createIndex({ status: 1, startTime: 1 }, { background: true });
     await pTimes(this.maxThreads, this.process.bind(this));
   }
 
