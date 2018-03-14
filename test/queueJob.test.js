@@ -647,7 +647,7 @@ tap.test('queue - update job', async (t) => {
 });
 
 tap.test('queue - jobs can be bound to object (this === server)', async (t) => {
-  const q = new Queue('mongodb://localhost:27017/queue', 'queue', 50);
+  const q = new Queue(mongoUrl, 'queue', 50);
   await q.start();
   const thisObject = {
     name: 'this'

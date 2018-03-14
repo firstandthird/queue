@@ -5,7 +5,7 @@
   "main": "index.js",
   "engine": {},
   "scripts": {
-    "test": "NODE_ENV=test tap --cov test/*.test.js"
+    "test": "NODE_ENV=test tap --cov --reporter spec test/*.test.js"
   },
   "author": "First+Third",
   "license": "MIT",
