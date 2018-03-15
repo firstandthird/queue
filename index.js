@@ -65,7 +65,7 @@ class Queue extends EventEmitter {
       return;
     }
 
-    const job = await this.getJob();
+    const job = await this.getNextJob();
 
     if (!job || !job.value) {
       this.emit('queue.empty');
@@ -178,7 +178,7 @@ class Queue extends EventEmitter {
     await this.db.update(query, { $set: { status: 'cancelled' } });
   }
 
-  async getJob() {
+  async getNextJob() {
     const job = await this.db.findOneAndUpdate({
       startTime: null,
       status: 'waiting',
@@ -229,6 +229,10 @@ class Queue extends EventEmitter {
 
   getJobQueue(status = 'waiting') {
     return this.db.find({ status }).toArray();
+  }
+
+  findJobs(query) {
+    return this.db.find(query).toArray();
   }
 
   async stats(since) {
