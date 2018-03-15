@@ -234,6 +234,10 @@ class Queue extends EventEmitter {
     return this.db.find({ status }).toArray();
   }
 
+  findJobs(query) {
+    return this.db.find(query).toArray();
+  }
+
   async stats(since) {
     if (!since) {
       since = new Date().getTime() - (24 * 3600);
