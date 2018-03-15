@@ -46,13 +46,13 @@ tap.test('queue job', async (t) => {
     }
   }), 'payload validation');
 
-  await t.resolves(q.queueJob({
+  const id = await q.queueJob({
     name: 'testJob',
     payload: {
       foo: 'bar'
     },
-
-  }), 'Queues up job');
+  });
+  t.isA(id, 'string', 'Queuing up a job will return its _id');
 
   const jobs = await q.db.find().toArray();
 
