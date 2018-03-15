@@ -110,6 +110,7 @@ tap.test('queue job', async (t) => {
     status: q.Joi.only('completed').required(),
     startTime: q.Joi.date().required(),
     endTime: q.Joi.date().required(),
+    duration: q.Joi.number().required(),
     error: q.Joi.only(null).required()
   }).length(1));
 
@@ -215,6 +216,7 @@ tap.test('queue job - no payload validation', async (t) => {
     status: q.Joi.only('completed').required(),
     startTime: q.Joi.date().required(),
     endTime: q.Joi.date().required(),
+    duration: q.Joi.number().required(),
     error: q.Joi.only(null).required()
   }).length(1));
 
@@ -259,7 +261,6 @@ tap.test('queue job - no payload validation', async (t) => {
   t.ok(jobSet, 'job passed in');
 
   const runJobs = await q.db.find().toArray();
-
   const result = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
     payload: q.Joi.object().required(),
@@ -269,7 +270,9 @@ tap.test('queue job - no payload validation', async (t) => {
     createdOn: q.Joi.date().required(),
     status: q.Joi.only('completed').required(),
     startTime: q.Joi.date().required(),
+    duration: q.Joi.number().required(),
     endTime: q.Joi.date().required(),
+    duration: q.Joi.number().required(),
     error: q.Joi.only(null).required()
   }).length(1));
 
@@ -335,6 +338,7 @@ tap.test('queue - multiple jobs run sequentially (concurrentcount = 1)', async (
     status: q.Joi.only('completed').required(),
     startTime: q.Joi.date().required(),
     endTime: q.Joi.date().required(),
+    duration: q.Joi.number().required(),
     error: q.Joi.only(null).required()
   }).length(2));
 
@@ -400,6 +404,7 @@ tap.test('queue - multiple concurrent jobs (concurrentCount > 1)', async (t) => 
     status: q.Joi.only('completed').required(),
     startTime: q.Joi.date().required(),
     endTime: q.Joi.date().required(),
+    duration: q.Joi.number().required(),
     error: q.Joi.only(null).required()
   }).length(2));
 
@@ -453,6 +458,7 @@ tap.test('queue - handles errors in job', async (t) => {
     status: q.Joi.only('failed').required(),
     startTime: q.Joi.date().required(),
     endTime: q.Joi.date().required(),
+    duration: q.Joi.number().required(),
     error: q.Joi.object().keys({
       stack: q.Joi.string().required(),
       message: q.Joi.string().required()
@@ -513,6 +519,7 @@ tap.test('queue - runAfter', async (t) => {
     status: q.Joi.only('completed').required(),
     startTime: q.Joi.date().required(),
     endTime: q.Joi.date().required(),
+    duration: q.Joi.number().required(),
     error: q.Joi.only(null).required()
   }).length(1));
 
@@ -638,6 +645,7 @@ tap.test('queue - update job', async (t) => {
     status: q.Joi.only('completed').required(),
     startTime: q.Joi.date().required(),
     endTime: q.Joi.date().required(),
+    duration: q.Joi.number().required(),
     error: q.Joi.only(null).required()
   }).length(1));
 

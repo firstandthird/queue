@@ -4,6 +4,32 @@ const { promisify } = require('util');
 const wait = setTimeout[promisify.custom];
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
+tap.test('creating a job emits "create" event', async (t) => {
+  const q = new Queue(mongoUrl, 'queue', 5000);
+  await q.start();
+  await q.db.remove({});
+  const job = {
+    name: 'testJob',
+    payloadValidation: q.Joi.object().keys({
+      foo: 'bar'
+    }),
+    async process(data) {
+      await wait(1);
+      return '1';
+    }
+  };
+  q.on('job.create', async (eventJob) => {
+    t.equal(eventJob.name, 'testJob');
+    t.equal(typeof eventJob.process, 'function');
+    t.equal(eventJob.payloadValidation.isJoi, true);
+    await q.db.remove({});
+    await q.stop();
+    t.end();
+  });
+  q.createJob(job);
+  await wait(200);
+});
+
 tap.test('queueing a job emits "queue" event', async (t) => {
   const q = new Queue(mongoUrl, 'queue', 5000);
   await q.start();
@@ -188,8 +214,9 @@ tap.test('cancelling a job emits the "cancel" event', async (t) => {
   const jobs = await q.db.find({}).toArray();
   q.cancelJob(jobs[0]._id);
   await q.db.remove({});
+  const ObjectId = q.db.s.pkFactory.ObjectID;
   await q.stop();
-  t.isA(cancelledJob, q.db.s.pkFactory.ObjectID, '"cancel" event provides the cancelled job id ');
+  t.isA(cancelledJob, ObjectId, '"cancel" event provides the cancelled job id ');
   t.end();
 });
 
