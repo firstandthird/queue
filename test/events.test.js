@@ -216,7 +216,7 @@ tap.test('cancelling a job emits the "cancel" event', async (t) => {
   const jobs = await q.db.find({}).toArray();
   q.cancelJob({ _id: jobs[0]._id });
   await q.db.remove({});
-  t.isA(cancelledJob, q.db.s.pkFactory.ObjectID, '"cancel" event provides the cancelled job id ');
+  t.isA(cancelledJob._id, q.db.s.pkFactory.ObjectID, '"cancel" event provides the cancelled job id ');
   await q.stop();
   t.end();
 });

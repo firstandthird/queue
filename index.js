@@ -174,7 +174,7 @@ class Queue extends EventEmitter {
     if (!query.status) {
       query.status = 'waiting';
     }
-    this.emit('cancel', query._id || query.key);
+    this.emit('cancel', query);
     await this.db.update(query, { $set: { status: 'cancelled' } });
   }
 
