@@ -19,6 +19,16 @@ tap.test('constructor - mongo collection required', (t) => {
   t.end();
 });
 
+tap.test('constructor - can pass db', async(t) => {
+  const { MongoClient } = require('mongodb');
+  const conn = await MongoClient.connect(mongoUrl);
+  const db = await conn.collection('queue');
+  const q = new Queue(db);
+  t.equal(q.collectionName, 'queue', 'passed db sets collection name');
+  await q.close();
+  t.end();
+});
+
 tap.test('constructor - mongo connects and disconnects', async (t) => {
   const q = new Queue(mongoUrl, 'queue');
   await q.connect();

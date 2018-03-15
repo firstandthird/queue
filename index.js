@@ -8,31 +8,33 @@ const pTimes = require('p-times');
 const EventEmitter = require('events');
 
 class Queue extends EventEmitter {
-  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1) {
+  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1, db = null) {
     super();
     this.jobs = {};
     this.mongoUrl = mongoUrl;
-    this.collectionName = collectionName;
+    this.collectionName = db ? db.s.dbName : collectionName;
     this.waitDelay = waitDelay;
     this.conn = null;
-    this.db = null;
+    this.db = db;
     this.Joi = Joi;
     this.maxThreads = maxThreads;
     this.bound = {};
 
-    if (!this.mongoUrl) {
+    if (!this.mongoUrl && !this.db) {
       throw new Error('mongoUrl not set');
     }
 
-    if (!this.collectionName) {
+    if (!this.collectionName && !this.db) {
       throw new Error('collectionName not set');
     }
   }
 
   async connect() {
-    this.conn = await MongoClient.connect(this.mongoUrl);
-    this.db = await this.conn.collection(this.collectionName);
-    this.db.createIndex({ status: 1, startTime: 1 }, { background: true });
+    if (!this.db) {
+      this.conn = await MongoClient.connect(this.mongoUrl);
+      this.db = await this.conn.collection(this.collectionName);
+      this.db.createIndex({ status: 1, startTime: 1 }, { background: true });
+    }
     this.exiting = false;
   }
 
@@ -43,8 +45,8 @@ class Queue extends EventEmitter {
     if (this.conn) {
       await this.conn.close();
       this.conn = null;
-      this.db = null;
     }
+    this.db = null;
   }
 
   async start() {
