@@ -52,7 +52,7 @@ tap.test('queue job', async (t) => {
       foo: 'bar'
     },
   });
-  t.isA(id, 'string', 'Queuing up a job will return its _id');
+  t.isA(id, 'object', 'Queuing up a job will return its _id');
 
   const jobs = await q.db.find().toArray();
 
