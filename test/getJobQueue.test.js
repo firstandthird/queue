@@ -40,6 +40,7 @@ tap.test('get job queue', async (t) => {
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
     key: q.Joi.only(null).required(),
+    groupKey: q.Joi.only(null).required(),
     createdOn: q.Joi.date().required(),
     status: q.Joi.only('waiting').required(),
     startTime: q.Joi.only(null).required(),
