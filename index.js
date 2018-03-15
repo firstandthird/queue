@@ -145,6 +145,7 @@ class Queue extends EventEmitter {
       name: data.name,
       runAfter: data.runAfter || new Date(),
       key: data.key || null,
+      groupKey: data.groupKey || null,
       createdOn: new Date(),
       status: 'waiting',
       startTime: null,
@@ -215,7 +216,7 @@ class Queue extends EventEmitter {
       job.duration = job.endTime.getTime() - job.startTime.getTime();
       this.emit('failed', job, err);
     }
-    this.db.update({
+    await this.db.update({
       _id: job._id
     }, {
       $set: {
@@ -225,6 +226,17 @@ class Queue extends EventEmitter {
         error
       }
     });
+    this.notifyGroup(job);
+  }
+
+  async notifyGroup(job) {
+    if (!job.groupKey) {
+      return;
+    }
+    const group = await this.db.find({ groupKey: job.groupKey, status: { $in: ['waiting', 'processing'] } }).toArray();
+    if (group.length === 0) {
+      this.emit('group.finish', job.groupKey);
+    }
   }
 
   getJobQueue(status = 'waiting') {

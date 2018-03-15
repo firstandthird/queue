@@ -235,3 +235,135 @@ tap.test('when no jobs left in queue fire the "queue empty" event', async (t) =>
   await wait(300);
   t.end();
 });
+
+tap.test('groupKeys will emit when all members of the group have finished', async (t) => {
+  const q = new Queue(mongoUrl, 'queue', 30);
+  await q.start();
+
+  // processes can exit only when these are set to true:
+  const letFinish = {
+    george: false,
+    paul: false,
+    john: false,
+    stuart: false
+  };
+
+  const job = {
+    name: 'george',
+    payloadValidation: q.Joi.object().keys({
+      foo: 'bar'
+    }),
+    async process(data) {
+      const finish = async() => {
+        if (!letFinish.george) {
+          await wait(300);
+          return finish();
+        }
+      };
+      await finish();
+    }
+  };
+
+  const job2 = {
+    name: 'paul',
+    payloadValidation: q.Joi.object().keys({
+      foo: 'bar'
+    }),
+    async process(data) {
+      const finish = async() => {
+        if (!letFinish.paul) {
+          await wait(300);
+          return finish();
+        }
+      };
+      await finish();
+    }
+  };
+
+  const job3 = {
+    name: 'john',
+    payloadValidation: q.Joi.object().keys({
+      foo: 'bar'
+    }),
+    async process(data) {
+      const finish = async() => {
+        if (!letFinish.john) {
+          await wait(300);
+          return finish();
+        }
+      };
+      await finish();
+    }
+  };
+
+  const job4 = {
+    name: 'stuart',
+    async process(data) {
+      const finish = async() => {
+        if (!letFinish.john) {
+          await wait(300);
+          return finish();
+        }
+      };
+      await finish();
+    }
+  };
+
+  q.createJob(job);
+  q.createJob(job2);
+  q.createJob(job3);
+  q.createJob(job4);
+
+  await q.db.remove({});
+
+  q.queueJob({
+    name: 'george',
+    groupKey: 'the beatles',
+    payload: {
+      foo: 'bar'
+    }
+  });
+
+  q.queueJob({
+    name: 'paul',
+    groupKey: 'the beatles',
+    payload: {
+      foo: 'bar'
+    },
+  });
+
+  q.queueJob({
+    name: 'john',
+    groupKey: 'the beatles',
+    payload: {
+      foo: 'bar'
+    }
+  });
+
+  q.queueJob({
+    name: 'stuart',
+    payload: {
+      foo: 'bar'
+    },
+  });
+
+  let theGroupKey;
+  q.on('group.finish', (groupKey) => {
+    theGroupKey = groupKey;
+  });
+
+  letFinish.stuart = true;
+  await wait(300);
+  t.equal(theGroupKey, undefined, 'group.finish does not fire when non-member completes');
+
+  letFinish.george = true;
+  letFinish.john = true;
+  await wait(300);
+  t.equal(theGroupKey, undefined, 'group.finish does not fire until all members complete');
+
+  letFinish.paul = true;
+  await wait(300);
+  t.equal(theGroupKey, 'the beatles', 'group.finish event was called with groupkey');
+  await q.stop();
+  t.end();
+});
