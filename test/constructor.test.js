@@ -27,8 +27,10 @@ tap.test('constructor - can pass db', async(t) => {
   t.equal(q.collectionName, 'queue', 'passed db sets collection name');
   await q.start();
   await new Promise(resolve => setTimeout(resolve, 1000));
+  t.equal(q.db, db, 'db was passed to queue');
   await q.close();
   await new Promise(resolve => setTimeout(resolve, 1000));
+  t.match(q, { db: null, conn: null }, 'db is shutdown');
   await conn.close();
   t.end();
 });

@@ -24,7 +24,7 @@ class Queue extends EventEmitter {
       throw new Error('mongoUrl not set');
     }
 
-    if (!this.collectionName && !this.db) {
+    if (!this.collectionName) {
       throw new Error('collectionName not set');
     }
   }
