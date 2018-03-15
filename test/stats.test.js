@@ -53,7 +53,7 @@ tap.test('get job stats', async (t) => {
   }), 'queue successful');
 
   await t.resolves(q.queueJob({
-    id: 'test',
+    key: 'test',
     name: 'testJob',
     payload: {
       foo: 'bar'
@@ -61,7 +61,7 @@ tap.test('get job stats', async (t) => {
     runAfter: new Date().getTime() + 50000
   }), 'queue cancel');
 
-  await t.resolves(q.cancelJob('test'), 'cancels job');
+  await t.resolves(q.cancelJob({ key: 'test' }), 'cancels job');
 
   await t.resolves(q.queueJob({
     name: 'testJobError',

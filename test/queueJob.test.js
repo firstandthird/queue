@@ -61,7 +61,7 @@ tap.test('queue job', async (t) => {
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
-    id: q.Joi.only(null).required(),
+    key: q.Joi.only(null).required(),
     createdOn: q.Joi.date().required(),
     status: q.Joi.only('waiting').required(),
     startTime: q.Joi.only(null).required(),
@@ -82,7 +82,7 @@ tap.test('queue job', async (t) => {
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
-    id: q.Joi.only(null).required(),
+    key: q.Joi.only(null).required(),
     createdOn: q.Joi.date().required(),
     status: q.Joi.only('processing').required(),
     startTime: q.Joi.date().required(),
@@ -105,7 +105,7 @@ tap.test('queue job', async (t) => {
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
-    id: q.Joi.only(null).required(),
+    key: q.Joi.only(null).required(),
     createdOn: q.Joi.date().required(),
     status: q.Joi.only('completed').required(),
     startTime: q.Joi.date().required(),
@@ -166,7 +166,7 @@ tap.test('queue job - no payload validation', async (t) => {
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
-    id: q.Joi.only(null).required(),
+    key: q.Joi.only(null).required(),
     createdOn: q.Joi.date().required(),
     status: q.Joi.only('waiting').required(),
     startTime: q.Joi.only(null).required(),
@@ -187,7 +187,7 @@ tap.test('queue job - no payload validation', async (t) => {
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
-    id: q.Joi.only(null).required(),
+    key: q.Joi.only(null).required(),
     createdOn: q.Joi.date().required(),
     status: q.Joi.only('processing').required(),
     startTime: q.Joi.date().required(),
@@ -211,7 +211,7 @@ tap.test('queue job - no payload validation', async (t) => {
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
-    id: q.Joi.only(null).required(),
+    key: q.Joi.only(null).required(),
     createdOn: q.Joi.date().required(),
     status: q.Joi.only('completed').required(),
     startTime: q.Joi.date().required(),
@@ -266,7 +266,7 @@ tap.test('queue job - no payload validation', async (t) => {
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
-    id: q.Joi.only(null).required(),
+    key: q.Joi.only(null).required(),
     createdOn: q.Joi.date().required(),
     status: q.Joi.only('completed').required(),
     startTime: q.Joi.date().required(),
@@ -333,7 +333,7 @@ tap.test('queue - multiple jobs run sequentially (concurrentcount = 1)', async (
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
-    id: q.Joi.only(null).required(),
+    key: q.Joi.only(null).required(),
     createdOn: q.Joi.date().required(),
     status: q.Joi.only('completed').required(),
     startTime: q.Joi.date().required(),
@@ -399,7 +399,7 @@ tap.test('queue - multiple concurrent jobs (concurrentCount > 1)', async (t) => 
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
-    id: q.Joi.only(null).required(),
+    key: q.Joi.only(null).required(),
     createdOn: q.Joi.date().required(),
     status: q.Joi.only('completed').required(),
     startTime: q.Joi.date().required(),
@@ -453,7 +453,7 @@ tap.test('queue - handles errors in job', async (t) => {
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
-    id: q.Joi.only(null).required(),
+    key: q.Joi.only(null).required(),
     createdOn: q.Joi.date().required(),
     status: q.Joi.only('failed').required(),
     startTime: q.Joi.date().required(),
@@ -514,7 +514,7 @@ tap.test('queue - runAfter', async (t) => {
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
-    id: q.Joi.only(null).required(),
+    key: q.Joi.only(null).required(),
     createdOn: q.Joi.date().required(),
     status: q.Joi.only('completed').required(),
     startTime: q.Joi.date().required(),
@@ -550,7 +550,7 @@ tap.test('queue - cancelJob', async (t) => {
   await q.db.remove({});
 
   await t.resolves(q.queueJob({
-    id: 'test',
+    key: 'test',
     name: 'testJob',
     payload: {
       foo: 'bar'
@@ -562,7 +562,7 @@ tap.test('queue - cancelJob', async (t) => {
 
   t.notOk(jobRun, 'Job still waiting');
 
-  await t.resolves(q.cancelJob('test'));
+  await t.resolves(q.cancelJob({ key: 'test' }));
 
   await wait(2000);
 
@@ -575,7 +575,7 @@ tap.test('queue - cancelJob', async (t) => {
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
-    id: q.Joi.only('test').required(),
+    key: q.Joi.only('test').required(),
     createdOn: q.Joi.date().required(),
     status: q.Joi.only('cancelled').required(),
     startTime: q.Joi.only(null).required(),
@@ -610,7 +610,7 @@ tap.test('queue - update job', async (t) => {
   await q.db.remove({});
 
   await t.resolves(q.queueJob({
-    id: 'test',
+    key: 'test',
     name: 'testJob',
     payload: {
       foo: 'bar'
@@ -621,7 +621,7 @@ tap.test('queue - update job', async (t) => {
   await wait(100);
 
   await t.resolves(q.queueJob({
-    id: 'test',
+    key: 'test',
     name: 'testJob',
     payload: {
       foo: 'update'
@@ -640,7 +640,7 @@ tap.test('queue - update job', async (t) => {
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
-    id: q.Joi.only('test').required(),
+    key: q.Joi.only('test').required(),
     createdOn: q.Joi.date().required(),
     status: q.Joi.only('completed').required(),
     startTime: q.Joi.date().required(),

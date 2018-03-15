@@ -4,6 +4,7 @@ const { promisify } = require('util');
 const wait = setTimeout[promisify.custom];
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
+
 tap.test('creating a job emits "create" event', async (t) => {
   const q = new Queue(mongoUrl, 'queue', 5000);
   await q.start();
@@ -213,11 +214,10 @@ tap.test('cancelling a job emits the "cancel" event', async (t) => {
   });
   await wait(300);
   const jobs = await q.db.find({}).toArray();
-  q.cancelJob(jobs[0]._id);
+  q.cancelJob({ _id: jobs[0]._id });
   await q.db.remove({});
-  const ObjectId = q.db.s.pkFactory.ObjectID;
+  t.isA(cancelledJob._id, q.db.s.pkFactory.ObjectID, '"cancel" event provides the cancelled job id ');
   await q.stop();
-  t.isA(cancelledJob, ObjectId, '"cancel" event provides the cancelled job id ');
   t.end();
 });
 
@@ -232,5 +232,6 @@ tap.test('when no jobs left in queue fire the "queue empty" event', async (t) =>
   await wait(3000);
   await q.stop();
   t.equal(empty, true);
+  await wait(300);
   t.end();
 });
