@@ -54,6 +54,7 @@ tap.test('queueing a job emits "queue" event', async (t) => {
       endTime: null,
       error: null
     }, 'event includes the original job data');
+    t.isA(eventJob._id, 'object', 'event includes _id of job');
     await q.db.remove({});
     await q.stop();
     t.end();

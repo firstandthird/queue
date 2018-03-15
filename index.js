@@ -162,9 +162,11 @@ class Queue extends EventEmitter {
         upsert: true
       });
     } else {
-      await this.db.insert(jobData);
+      const saveResults = await this.db.insert(jobData);
+      jobData._id = saveResults.ops[0]._id;
     }
     this.emit('queue', jobData);
+    return jobData._id;
   }
 
   async getJob() {
