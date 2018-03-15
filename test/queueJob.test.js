@@ -4,6 +4,7 @@ const { promisify } = require('util');
 const wait = setTimeout[promisify.custom];
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
+
 tap.test('queue job', async (t) => {
   const q = new Queue(mongoUrl, 'queue', 500);
   await q.start();
@@ -492,7 +493,7 @@ tap.test('queue - runAfter', async (t) => {
     runAfter: new Date().getTime() + 1000
   }), 'Queues up job');
 
-  await wait(1000);
+  await wait(100);
 
   t.notOk(jobRun, 'Job still waiting');
 
