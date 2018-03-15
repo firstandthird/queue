@@ -29,17 +29,35 @@ class Queue extends EventEmitter {
     }
   }
 
-  async start() {
-    this.exiting = false;
+  async connect() {
     this.conn = await MongoClient.connect(this.mongoUrl);
     this.db = await this.conn.collection(this.collectionName);
     this.db.createIndex({ status: 1, startTime: 1 }, { background: true });
+    this.exiting = false;
+  }
+
+  async close() {
+    if (!this.exiting) {
+      this.exiting = true;
+    }
+    if (this.conn) {
+      await this.conn.close();
+      this.conn = null;
+      this.db = null;
+    }
+  }
+
+  async start() {
+    this.exiting = false;
+    if (!this.conn) {
+      await this.connect();
+    }
     pTimes(this.maxThreads, this.process.bind(this));
   }
 
   async stop() {
     this.exiting = true;
-    await this.conn.close();
+    await this.close();
   }
 
   async process() {
