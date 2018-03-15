@@ -216,8 +216,7 @@ class Queue extends EventEmitter {
       job.duration = job.endTime.getTime() - job.startTime.getTime();
       this.emit('failed', job, err);
     }
-    await this.notifyGroup(job);
-    this.db.update({
+    await this.db.update({
       _id: job._id
     }, {
       $set: {
@@ -227,6 +226,7 @@ class Queue extends EventEmitter {
         error
       }
     });
+    this.notifyGroup(job);
   }
 
   async notifyGroup(job) {
@@ -234,8 +234,7 @@ class Queue extends EventEmitter {
       return;
     }
     const group = await this.db.find({ groupKey: job.groupKey, status: { $in: ['waiting', 'processing'] } }).toArray();
-    // the current job will not have had its status updated, so this is 1 instead of 0:
-    if (group.length === 1) {
+    if (group.length === 0) {
       this.emit('group.finish', job.groupKey);
     }
   }
