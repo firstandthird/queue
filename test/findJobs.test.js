@@ -4,7 +4,7 @@ const { promisify } = require('util');
 const wait = setTimeout[promisify.custom];
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
-tap.test('get job stats', async (t) => {
+tap.test('findJobs query', async (t) => {
   const q = new Queue(mongoUrl, 'queue', 100);
   await q.start();
 
@@ -69,6 +69,7 @@ tap.test('get job stats', async (t) => {
   });
 
   q.queueJob({
+    key: 'salto',
     name: 'testJob',
     payload: {
       foo: 'bar'
@@ -89,6 +90,9 @@ tap.test('get job stats', async (t) => {
     { name: 'testJob' },
     { name: 'testJob' }
   ], 'only returns jobs matching the query');
+  const jobs2 = await q.findJobs({ key: 'salto' });
+  t.equal(jobs2.length, 1);
+  t.isLike(jobs2, [{ key: 'salto', name: 'testJob' }]);
   await q.stop();
   t.end();
 });
