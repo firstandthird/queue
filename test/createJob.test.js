@@ -70,7 +70,8 @@ tap.test('create job', async (t) => {
   t.strictSame(q.jobs, {
     testJob: job
   }, 'Job added to this.jobs');
-
+  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+  await wait(200);
   await q.stop();
   t.end();
 });
