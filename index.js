@@ -144,7 +144,7 @@ class Queue extends EventEmitter {
       payload: data.payload,
       name: data.name,
       runAfter: data.runAfter || new Date(),
-      id: data.id || null,
+      key: data.key || null,
       createdOn: new Date(),
       status: 'waiting',
       startTime: null,
@@ -152,9 +152,9 @@ class Queue extends EventEmitter {
       error: null
     };
 
-    if (data.id) {
+    if (data.key) {
       await this.db.update({
-        id: data.id,
+        key: data.key,
         status: 'waiting'
       }, {
         $set: jobData
@@ -167,6 +167,15 @@ class Queue extends EventEmitter {
     }
     this.emit('queue', jobData);
     return jobData._id;
+  }
+
+  async cancelJob(query) {
+    // if no status was specified, this will only cancel the job if it is 'waiting'
+    if (!query.status) {
+      query.status = 'waiting';
+    }
+    this.emit('cancel', query);
+    await this.db.update(query, { $set: { status: 'cancelled' } });
   }
 
   async getJob() {
@@ -214,18 +223,6 @@ class Queue extends EventEmitter {
         duration: job.duration,
         status,
         error
-      }
-    });
-  }
-
-  cancelJob(jobId) {
-    this.emit('cancel', jobId);
-    return this.db.update({
-      id: jobId,
-      status: 'waiting'
-    }, {
-      $set: {
-        status: 'cancelled'
       }
     });
   }
