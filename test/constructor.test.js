@@ -1,7 +1,12 @@
 const tap = require('tap');
 const Queue = require('../');
-
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
+
+const clear = require('./clear.js');
+tap.beforeEach((done) => {
+  clear(mongoUrl, 'queue');
+  done();
+});
 
 tap.test('constructor - mongo required', (t) => {
   t.throws(() => {

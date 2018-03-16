@@ -4,8 +4,10 @@ const { promisify } = require('util');
 const wait = setTimeout[promisify.custom];
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
+const clear = require('./clear.js');
 
 tap.test('queue job', async (t) => {
+  await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 500);
   await q.start();
 
@@ -124,6 +126,7 @@ tap.test('queue job', async (t) => {
 });
 
 tap.test('queue job - no payload validation', async (t) => {
+  await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 500);
   await q.start();
 
@@ -233,6 +236,7 @@ tap.test('queue job - no payload validation', async (t) => {
 });
 
 tap.test('queue job - no payload validation', async (t) => {
+  await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 50);
   await q.start();
 
@@ -290,6 +294,7 @@ tap.test('queue job - no payload validation', async (t) => {
 });
 
 tap.test('queue - multiple jobs run sequentially (concurrentcount = 1)', async (t) => {
+  await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 50);
   await q.start();
 
@@ -357,6 +362,7 @@ tap.test('queue - multiple jobs run sequentially (concurrentcount = 1)', async (
 });
 
 tap.test('queue - multiple concurrent jobs (concurrentCount > 1)', async (t) => {
+  await clear(mongoUrl, 'queue');
   // queue initialized with up to 5 concurrent processes allowed:
   const q = new Queue(mongoUrl, 'queue', 50, 5);
   await q.start();
@@ -424,6 +430,7 @@ tap.test('queue - multiple concurrent jobs (concurrentCount > 1)', async (t) => 
 });
 
 tap.test('queue - handles errors in job', async (t) => {
+  await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 50);
   await q.start();
   let jobRun = false;
@@ -482,6 +489,7 @@ tap.test('queue - handles errors in job', async (t) => {
 });
 
 tap.test('queue - runAfter', async (t) => {
+  await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 50);
   await q.start();
 
@@ -541,6 +549,7 @@ tap.test('queue - runAfter', async (t) => {
 });
 
 tap.test('queue - cancelJob', async (t) => {
+  await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 50);
   await q.start();
 
@@ -602,6 +611,7 @@ tap.test('queue - cancelJob', async (t) => {
 });
 
 tap.test('queue - update job', async (t) => {
+  await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 50);
   await q.start();
 
@@ -669,6 +679,7 @@ tap.test('queue - update job', async (t) => {
 });
 
 tap.test('queue - jobs can be bound to object (this === server)', async (t) => {
+  await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 50);
   await q.start();
   const thisObject = {
