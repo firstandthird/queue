@@ -1,7 +1,8 @@
 const { MongoClient } = require('mongodb');
 
-// 't.resolve' assertions run in their own sub-test, each of which also invokes tap.beforeEach.
-// for files that have t.resolve statements, this must be called manually at the start of each test:
+// tap executes 't.resolve' assertions in their own sub-test, each of which will invoke tap.beforeEach.
+// So for test files that contain t.resolve statements, this should be called once time explicitly at the start of each test
+// and not in tap.beforeEach:
 module.exports = async (mongoUrl, collectionName) => {
   const conn = await MongoClient.connect(mongoUrl);
   const db = await conn.collection(collectionName);
