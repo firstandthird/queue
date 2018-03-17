@@ -251,16 +251,16 @@ class Queue extends EventEmitter {
     if (!since) {
       since = new Date().getTime() - (24 * 3600);
     }
-
     since = new Date(since);
-    // TODO make aggregate
-    const waiting = await this.db.count({ status: 'waiting', createdOn: { $gt: since } });
-    const processing = await this.db.count({ status: 'processing', createdOn: { $gt: since } });
-    const cancelled = await this.db.count({ status: 'cancelled', createdOn: { $gt: since } });
-    const failed = await this.db.count({ status: 'failed', createdOn: { $gt: since } });
-    const completed = await this.db.count({ status: 'completed', createdOn: { $gt: since } });
-
-    return { waiting, processing, cancelled, failed, completed };
+    const stats = await this.db.aggregate([
+      { $match: { createdOn: { $gt: since } } },
+      { $group: { _id: '$status', count: { $sum: 1 } } },
+    ]).toArray();
+    // reduce results to an object like { waiting: x, processing: x2, ... }
+    return stats.reduce((memo, stat) => {
+      memo[stat._id] = stat.count;
+      return memo;
+    }, {});
   }
 }
 
