@@ -4,6 +4,8 @@ const { promisify } = require('util');
 const wait = setTimeout[promisify.custom];
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
+const clear = require('./clear.js');
+tap.beforeEach(() => clear(mongoUrl, 'queue'));
 
 tap.test('creating a job emits "create" event', async (t) => {
   const q = new Queue(mongoUrl, 'queue', 5000);
