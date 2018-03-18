@@ -13,7 +13,7 @@ class Queue extends EventEmitter {
     this.jobs = {};
     // mongoUrl can also be a reference to a mongo db:
     this.mongoUrl = mongoUrl;
-    this.db = mongoUrl === 'string' ? null : mongoUrl;
+    this.db = typeof mongoUrl === 'string' ? null : mongoUrl;
     this.collectionName = this.db ? this.db.s.dbName : collectionName;
     this.waitDelay = waitDelay;
     this.conn = null;
