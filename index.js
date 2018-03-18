@@ -8,14 +8,15 @@ const pTimes = require('p-times');
 const EventEmitter = require('events');
 
 class Queue extends EventEmitter {
-  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1, db = null) {
+  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1) {
     super();
     this.jobs = {};
+    // mongoUrl can also be a reference to a mongo db:
     this.mongoUrl = mongoUrl;
-    this.collectionName = db ? db.s.dbName : collectionName;
+    this.db = mongoUrl === 'string' ? null : mongoUrl;
+    this.collectionName = this.db ? this.db.s.dbName : collectionName;
     this.waitDelay = waitDelay;
     this.conn = null;
-    this.db = db;
     this.Joi = Joi;
     this.maxThreads = maxThreads;
     this.bound = {};

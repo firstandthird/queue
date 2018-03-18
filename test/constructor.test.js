@@ -19,11 +19,11 @@ tap.test('constructor - mongo collection required', (t) => {
   t.end();
 });
 
-tap.test('constructor - can pass db', async(t) => {
+tap.test('constructor - can pass db instead of mongoUrl', async(t) => {
   const { MongoClient } = require('mongodb');
   const conn = await MongoClient.connect(mongoUrl);
   const db = await conn.collection('queue');
-  const q = new Queue(undefined, undefined, 500, 1, db);
+  const q = new Queue(db);
   t.equal(q.collectionName, 'queue', 'passed db sets collection name');
   await q.start();
   await new Promise(resolve => setTimeout(resolve, 1000));
