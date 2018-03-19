@@ -11,16 +11,17 @@ class Queue extends EventEmitter {
   constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1) {
     super();
     this.jobs = {};
+    // mongoUrl can also be a reference to a mongo db:
     this.mongoUrl = mongoUrl;
-    this.collectionName = collectionName;
+    this.db = typeof mongoUrl === 'string' ? null : mongoUrl;
+    this.collectionName = this.db ? this.db.s.dbName : collectionName;
     this.waitDelay = waitDelay;
     this.conn = null;
-    this.db = null;
     this.Joi = Joi;
     this.maxThreads = maxThreads;
     this.bound = {};
 
-    if (!this.mongoUrl) {
+    if (!this.mongoUrl && !this.db) {
       throw new Error('mongoUrl not set');
     }
 
@@ -30,9 +31,11 @@ class Queue extends EventEmitter {
   }
 
   async connect() {
-    this.conn = await MongoClient.connect(this.mongoUrl);
-    this.db = await this.conn.collection(this.collectionName);
-    this.db.createIndex({ status: 1, startTime: 1 }, { background: true });
+    if (!this.db) {
+      this.conn = await MongoClient.connect(this.mongoUrl);
+      this.db = await this.conn.collection(this.collectionName);
+      this.db.createIndex({ status: 1, startTime: 1 }, { background: true });
+    }
     this.exiting = false;
   }
 
@@ -43,8 +46,8 @@ class Queue extends EventEmitter {
     if (this.conn) {
       await this.conn.close();
       this.conn = null;
-      this.db = null;
     }
+    this.db = null;
   }
 
   async start() {
