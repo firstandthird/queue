@@ -7,8 +7,16 @@ const path = require('path');
 const pTimes = require('p-times');
 const EventEmitter = require('events');
 
+const statuses = {
+  failed: -2,
+  cancelled: -1,
+  waiting: 0,
+  processing: 1,
+  completed: 2,
+};
+
 class Queue extends EventEmitter {
-  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1) {
+  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1, prom = undefined) {
     super();
     this.jobs = {};
     // mongoUrl can also be a reference to a mongo db:
@@ -20,7 +28,18 @@ class Queue extends EventEmitter {
     this.Joi = Joi;
     this.maxThreads = maxThreads;
     this.bound = {};
-
+    if (prom) {
+      this.processing_time = new prom.Summary({
+        name: 'processing_time',
+        help: 'job processing time',
+        labelNames: ['jobName']
+      });
+      this.processing_status = new prom.Gauge({
+        name: 'processing_status',
+        help: 'job status number',
+        labelNames: ['jobName']
+      });
+    }
     if (!this.mongoUrl && !this.db) {
       throw new Error('mongoUrl not set');
     }
@@ -75,7 +94,7 @@ class Queue extends EventEmitter {
       await wait(this.waitDelay);
     } else {
       this.emit('process', job.value);
-      await this.runJob(job.value);
+      await this.runJob.bind(this)(job.value);
     }
 
     this.process();
@@ -155,7 +174,9 @@ class Queue extends EventEmitter {
       endTime: null,
       error: null
     };
-
+    if (this.processing_status) {
+      this.processing_status.set({ jobName: data.name }, statuses.waiting);
+    }
     if (data.key) {
       await this.db.update({
         key: data.key,
@@ -179,6 +200,9 @@ class Queue extends EventEmitter {
       query.status = 'waiting';
     }
     this.emit('cancel', query);
+    if (this.processing_status) {
+      this.processing_status.set({ jobName: query.key }, statuses.cancelled);
+    }
     await this.db.update(query, { $set: { status: 'cancelled' } });
   }
 
@@ -198,7 +222,9 @@ class Queue extends EventEmitter {
       },
       returnOriginal: false
     });
-
+    if (this.processing_status && job.value) {
+      this.processing_status.set({ jobName: job.value.name }, statuses.processing);
+    }
     return job;
   }
 
@@ -212,12 +238,21 @@ class Queue extends EventEmitter {
       job.endTime = new Date();
       job.duration = job.endTime.getTime() - job.startTime.getTime();
       this.emit('finish', job);
+      if (this.processing_status) {
+        this.processing_status.set({ jobName: job.name }, statuses.completed);
+      }
     } catch (err) {
       error = JSON.stringify(err, Object.getOwnPropertyNames(err));
       status = job.status = 'failed';
       job.endTime = new Date();
       job.duration = job.endTime.getTime() - job.startTime.getTime();
       this.emit('failed', job, err);
+      if (this.processing_status) {
+        this.processing_status.set({ jobName: job.name }, statuses.failed);
+      }
+    }
+    if (this.processing_time) {
+      this.processing_time.observe({ jobName: job.name }, job.duration);
     }
     await this.db.update({
       _id: job._id
