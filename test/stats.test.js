@@ -244,6 +244,9 @@ tap.test('prom object will also track job statuses', async (t) => {
     }
   }), 'queue error');
 
+  const string0 = prom.register.metrics();
+  t.match(string0, 'processing_status{jobName="testJobProcessing"} 0');
+
   await wait(1000);
 
   const string1 = prom.register.metrics();
