@@ -248,12 +248,12 @@ tap.test('prom object will also track job statuses', async (t) => {
   t.match(string0, 'waiting{jobName="testJobProcessing"} 1');
   await wait(1000);
   const string1 = prom.register.metrics();
-  t.match(string1, 'completed{jobName="testJob"} 1');
+  t.match(string1, 'completed{jobName="testJob"} 2');
   t.match(string1, 'cancelled{jobName="test"} 1');
   t.match(string1, 'processing{jobName="testJobProcessing"} 1');
   await wait(4000);
   const string2 = prom.register.metrics();
-  t.match(string2, 'completed{jobName="testJob"} 1');
+  t.match(string2, 'completed{jobName="testJob"} 2');
   t.match(string2, 'cancelled{jobName="test"} 1');
   t.match(string2, 'waiting{jobName="testJobProcessing"} 1');
   t.match(string2, 'failed{jobName="testJobError"} 1');
