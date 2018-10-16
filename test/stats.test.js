@@ -158,8 +158,8 @@ tap.test('prom object will also track job processing time', async (t) => {
   await wait(5000);
 
   const string = prom.register.metrics();
-  t.match(string, 'processing_time_sum{jobName="testJob"}');
-  t.match(string, 'processing_time_count{jobName="testJob"}');
+  t.match(string, 'processingTime_sum{jobName="testJob"}');
+  t.match(string, 'processingTime_count{jobName="testJob"}');
   await wait(1000);
   await q.stop();
   t.end();
@@ -245,20 +245,18 @@ tap.test('prom object will also track job statuses', async (t) => {
   }), 'queue error');
 
   const string0 = prom.register.metrics();
-  t.match(string0, 'processing_status{jobName="testJobProcessing"} 0');
-
+  t.match(string0, 'waiting{jobName="testJobProcessing"} 1');
   await wait(1000);
-
   const string1 = prom.register.metrics();
-  t.match(string1, 'processing_status{jobName="testJob"} 2');
-  t.match(string1, 'processing_status{jobName="test"} -1');
-  t.match(string1, 'processing_status{jobName="testJobProcessing"} 1');
+  t.match(string1, 'completed{jobName="testJob"} 1');
+  t.match(string1, 'cancelled{jobName="test"} 1');
+  t.match(string1, 'processing{jobName="testJobProcessing"} 1');
   await wait(4000);
   const string2 = prom.register.metrics();
-  t.match(string2, 'processing_status{jobName="testJob"} 2');
-  t.match(string2, 'processing_status{jobName="test"} -1');
-  t.match(string2, 'processing_status{jobName="testJobProcessing"} 2');
-  t.match(string2, 'processing_status{jobName="testJobError"} -2');
+  t.match(string2, 'completed{jobName="testJob"} 1');
+  t.match(string2, 'cancelled{jobName="test"} 1');
+  t.match(string2, 'waiting{jobName="testJobProcessing"} 1');
+  t.match(string2, 'failed{jobName="testJobError"} 1');
   await q.stop();
   t.end();
 });
