@@ -1,6 +1,6 @@
 {
   "name": "@firstandthird/queue",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "simple job queue",
   "main": "index.js",
   "engine": {},
