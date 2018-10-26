@@ -252,7 +252,7 @@ class Queue extends EventEmitter {
 
   async stats(since) {
     if (!since) {
-      since = new Date().getTime() - (24 * 3600);
+      since = new Date().getTime() - (24 * 1000 * 60 * 60);
     }
     since = new Date(since);
     const stats = await this.db.aggregate([
