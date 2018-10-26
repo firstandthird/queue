@@ -237,14 +237,14 @@ class Queue extends EventEmitter {
         this.processingStatuses.completed.inc({ jobName: job.name }, 1);
       }
     } catch (err) {
+      if (this.processingStatuses) {
+        this.processingStatuses.failed.inc({ jobName: job.name }, 1);
+      }
       error = JSON.stringify(err, Object.getOwnPropertyNames(err));
       status = job.status = 'failed';
       job.endTime = new Date();
       job.duration = job.endTime.getTime() - job.startTime.getTime();
       this.emit('failed', job, err);
-      if (this.processingStatuses) {
-        this.processingStatuses.failed.inc({ jobName: job.name }, 1);
-      }
     }
     if (this.processingTime) {
       this.processingTime.observe({ jobName: job.name }, job.duration);
