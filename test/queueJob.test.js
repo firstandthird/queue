@@ -716,3 +716,41 @@ tap.test('queue - jobs can be bound to object (this === server)', async (t) => {
   await q.stop();
   t.end();
 });
+
+tap.test('queue - timeout', async (t) => {
+  await clear(mongoUrl, 'queue');
+
+  const q = new Queue(mongoUrl, 'queue', 50, 1, undefined, 100);
+  await q.start();
+
+  const job = {
+    name: 'testJob',
+    payloadValidation: q.Joi.object().keys({
+      foo: 'bar'
+    }),
+    async process(data) {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+  };
+
+  q.createJob(job);
+
+  await q.db.remove({});
+
+  await t.resolves(q.queueJob({
+    key: 'test',
+    name: 'testJob',
+    payload: {
+      foo: 'bar'
+    },
+  }), 'Queues up job');
+
+  await wait(2000);
+
+  const runJobs = await q.db.find().toArray();
+  t.match(runJobs[0], {
+    status: 'timeout'
+  });
+  await q.stop();
+  t.end();
+});

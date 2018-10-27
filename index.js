@@ -8,7 +8,7 @@ const pTimes = require('p-times');
 const EventEmitter = require('events');
 
 class Queue extends EventEmitter {
-  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1, prom = undefined) {
+  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1, prom = undefined, timeout = 30000) {
     super();
     this.jobs = {};
     // mongoUrl can also be a reference to a mongo db:
@@ -20,6 +20,7 @@ class Queue extends EventEmitter {
     this.Joi = Joi;
     this.maxThreads = maxThreads;
     this.bound = {};
+    this.timeout = timeout;
     if (prom) {
       this.processingTime = new prom.Summary({
         name: 'processingTime',
@@ -216,6 +217,15 @@ class Queue extends EventEmitter {
         createdOn: 1
       },
       returnOriginal: false
+    });
+    // find and update timed-out jobs:
+    await this.db.update({
+      status: 'processing',
+      startTime: {
+        $gt: new Date(new Date().getTime() - this.timeout)
+      }
+    }, {
+      $set: { status: 'timeout' }
     });
     if (this.processingStatuses && job.value) {
       this.processingStatuses.processing.inc({ jobName: job.value.name }, 1);

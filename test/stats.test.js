@@ -92,9 +92,9 @@ tap.test('get job stats', async (t) => {
   await wait(3000);
 
   const stats = await q.stats();
-  t.same(stats, { waiting: 1, processing: 1, cancelled: 1, failed: 1, completed: 1 });
+  t.same(stats, { waiting: 1, processing: 1, cancelled: 1, failed: 1, completed: 1, timeout: 1 });
   const stats2 = await q.stats(new Date().getTime() - (48 * 3600));
-  t.same(stats2, { waiting: 1, processing: 1, cancelled: 1, failed: 1, completed: 1 });
+  t.same(stats2, { waiting: 1, processing: 1, cancelled: 1, failed: 1, completed: 1, timeout: 1 });
 
   // Wait so processing job can finish
   await wait(1000);
