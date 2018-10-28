@@ -110,7 +110,9 @@ class Queue extends EventEmitter {
     if (typeof job.payloadValidation !== 'object' && typeof job.payloadValidation !== 'undefined') {
       throw new Error('payloadValidation needs to be an object');
     }
-
+    if (!job.priority) {
+      job.priority = 0;
+    }
     if (typeof job.process !== 'function') {
       throw new Error('Job must have a process method');
     }
@@ -213,6 +215,7 @@ class Queue extends EventEmitter {
       }
     }, {
       sort: {
+        priority: 1,
         createdOn: 1
       },
       returnOriginal: false

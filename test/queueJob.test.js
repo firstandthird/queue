@@ -5,7 +5,7 @@ const wait = setTimeout[promisify.custom];
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
 const clear = require('./clear.js');
-
+/*
 tap.test('queue job', async (t) => {
   await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 500);
@@ -713,6 +713,79 @@ tap.test('queue - jobs can be bound to object (this === server)', async (t) => {
   await wait(3000);
 
   t.ok(jobRun);
+  await q.stop();
+  t.end();
+});
+*/
+tap.test('queue - priority', async (t) => {
+  await clear(mongoUrl, 'queue');
+  const q = new Queue(mongoUrl, 'queue', 1000);
+  await q.start();
+
+  const jobTimes = {};
+  const job = {
+    name: 'testJob',
+    priority: 1,
+    payloadValidation: q.Joi.object().keys({
+      foo: 'bar'
+    }),
+    runAfter: new Date().getTime() + 150,
+    process(data) {
+      jobTimes.job = new Date().getTime();
+    }
+  };
+  q.createJob(job);
+
+  const job2 = {
+    name: 'testJob2',
+    priority: 5,
+    payloadValidation: q.Joi.object().keys({
+      foo: 'bar'
+    }),
+    runAfter: new Date().getTime() + 150,
+    process(data) {
+      jobTimes.job2 = new Date().getTime();
+    }
+  };
+  q.createJob(job2);
+
+  const job3 = {
+    name: 'testJob3',
+    priority: 11,
+    payloadValidation: q.Joi.object().keys({
+      foo: 'bar'
+    }),
+    runAfter: new Date().getTime() + 150,
+    process(data) {
+      jobTimes.job3 = new Date().getTime();
+    }
+  };
+  q.createJob(job3);
+
+  await q.db.remove({});
+
+  await t.resolves(q.queueJob({
+    name: 'testJob3',
+    payload: {
+      foo: 'bar'
+    },
+  }), 'Queues up job');
+  await t.resolves(q.queueJob({
+    name: 'testJob',
+    payload: {
+      foo: 'bar'
+    },
+  }), 'Queues up job');
+  await t.resolves(q.queueJob({
+    name: 'testJob2',
+    payload: {
+      foo: 'bar'
+    },
+  }), 'Queues up job');
+  await wait(2000);
+  const runJobs = await q.db.find().toArray();
+  console.log(jobTimes);
+
   await q.stop();
   t.end();
 });
