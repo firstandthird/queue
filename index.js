@@ -268,7 +268,7 @@ class Queue extends EventEmitter {
     }
     const group = await this.db.find({ groupKey: job.groupKey, status: { $in: ['waiting', 'processing'] } }).toArray();
     if (group.length === 0) {
-      this.emit('group.finish', job.groupKey);
+      this.emit('group.finish', { groupKey: job.groupKey });
     }
   }
 
