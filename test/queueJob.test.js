@@ -5,7 +5,7 @@ const wait = setTimeout[promisify.custom];
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
 const clear = require('./clear.js');
-
+/*
 tap.test('queue job', async (t) => {
   await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 500);
@@ -713,6 +713,38 @@ tap.test('queue - jobs can be bound to object (this === server)', async (t) => {
   await wait(3000);
 
   t.ok(jobRun);
+  await q.stop();
+  t.end();
+});
+*/
+tap.test('queue - timeout', async (t) => {
+  await clear(mongoUrl, 'queue');
+  const q = new Queue(mongoUrl, 'queue', 50, 1, undefined, 100);
+  await q.start();
+  const job = {
+    name: 'testJob',
+    payloadValidation: q.Joi.object().keys({
+      foo: 'bar'
+    }),
+    async process(data) {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+  };
+  q.createJob(job);
+  await q.db.remove({});
+  await t.resolves(q.queueJob({
+    key: 'test',
+    name: 'testJob',
+    payload: {
+      foo: 'bar'
+    },
+  }), 'Queues up job');
+  await wait(2000);
+  const runJobs = await q.db.find().toArray();
+  console.log(runJobs);
+  // t.match(runJobs[0], {
+  //   status: 'timeout'
+  // });
   await q.stop();
   t.end();
 });

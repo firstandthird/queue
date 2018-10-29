@@ -5,10 +5,11 @@ const wait = setTimeout[promisify.custom];
 const fs = require('fs');
 const path = require('path');
 const pTimes = require('p-times');
+const pTimeout = require('p-timeout');
 const EventEmitter = require('events');
 
 class Queue extends EventEmitter {
-  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1, prom = undefined) {
+  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1, prom = undefined, timeout = 30000) {
     super();
     this.jobs = {};
     // mongoUrl can also be a reference to a mongo db:
@@ -19,6 +20,7 @@ class Queue extends EventEmitter {
     this.conn = null;
     this.Joi = Joi;
     this.maxThreads = maxThreads;
+    this.timeout = timeout;
     this.bound = {};
     if (prom) {
       this.processingTime = new prom.Summary({
@@ -89,7 +91,23 @@ class Queue extends EventEmitter {
       await wait(this.waitDelay);
     } else {
       this.emit('process', job.value);
-      await this.runJob.bind(this)(job.value);
+      const b = this.runJob.bind(this);
+      const p = new Promise(async resolve => {
+        await b(job.value);
+        return resolve();
+      });
+      const db = this.db;
+      console.log('timeout in %s', this.timeout);
+      await pTimeout(p, this.timeout, async() => {
+        console.log('ptimeout called');
+        // find and update timed-out jobs:
+        await db.update({
+          _id: job._id
+        }, {
+          $set: { status: 'timeout' }
+        });
+        console.log('then it is over');
+      });
     }
 
     this.process();
@@ -217,6 +235,8 @@ class Queue extends EventEmitter {
       },
       returnOriginal: false
     });
+    console.log('---------');
+    console.log(job.value);
     if (this.processingStatuses && job.value) {
       this.processingStatuses.processing.inc({ jobName: job.value.name }, 1);
     }
@@ -226,7 +246,6 @@ class Queue extends EventEmitter {
   async runJob(job) {
     let status = 'completed';
     let error = null;
-
     try {
       await this.jobs[job.name].process.call(this.bound, job.payload, this, job);
       status = job.status = 'completed';
