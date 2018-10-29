@@ -97,16 +97,13 @@ class Queue extends EventEmitter {
         return resolve();
       });
       const db = this.db;
-      console.log('timeout in %s', this.timeout);
-      await pTimeout(p, this.timeout, async() => {
-        console.log('ptimeout called');
+      pTimeout(p, this.timeout, async() => {
         // find and update timed-out jobs:
         await db.update({
-          _id: job._id
+          _id: job.value._id
         }, {
           $set: { status: 'timeout' }
         });
-        console.log('then it is over');
       });
     }
 
@@ -235,8 +232,6 @@ class Queue extends EventEmitter {
       },
       returnOriginal: false
     });
-    console.log('---------');
-    console.log(job.value);
     if (this.processingStatuses && job.value) {
       this.processingStatuses.processing.inc({ jobName: job.value.name }, 1);
     }
