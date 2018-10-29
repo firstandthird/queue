@@ -22,14 +22,14 @@ class Queue extends EventEmitter {
     this.bound = {};
     if (prom) {
       this.processingTime = new prom.Summary({
-        name: 'processingTime',
+        name: 'queue_processing_milliseconds',
         help: 'job processing time',
         labelNames: ['jobName']
       });
       this.processingStatuses = {};
       ['waiting', 'failed', 'completed', 'processing', 'cancelled'].forEach(status => {
         this.processingStatuses[status] = new prom.Gauge({
-          name: status,
+          name: `queue_${status}_count`,
           help: 'job status number',
           labelNames: ['jobName']
         });
