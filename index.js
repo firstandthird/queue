@@ -91,20 +91,7 @@ class Queue extends EventEmitter {
       await wait(this.waitDelay);
     } else {
       this.emit('process', job.value);
-      const b = this.runJob.bind(this);
-      const p = new Promise(async resolve => {
-        await b(job.value);
-        return resolve();
-      });
-      const db = this.db;
-      pTimeout(p, this.timeout, async() => {
-        // find and update timed-out jobs:
-        await db.update({
-          _id: job.value._id
-        }, {
-          $set: { status: 'timeout' }
-        });
-      });
+      await this.runJob.bind(this)(job.value);
     }
 
     this.process();
@@ -242,7 +229,14 @@ class Queue extends EventEmitter {
     let status = 'completed';
     let error = null;
     try {
-      await this.jobs[job.name].process.call(this.bound, job.payload, this, job);
+      await pTimeout(new Promise(async (resolve, reject) => {
+        try {
+          await this.jobs[job.name].process.call(this.bound, job.payload, this, job);
+          return resolve();
+        } catch (e) {
+          return reject(e);
+        }
+      }), this.timeout);
       status = job.status = 'completed';
       job.endTime = new Date();
       job.duration = job.endTime.getTime() - job.startTime.getTime();
@@ -255,7 +249,7 @@ class Queue extends EventEmitter {
         this.processingStatuses.failed.inc({ jobName: job.name }, 1);
       }
       error = JSON.stringify(err, Object.getOwnPropertyNames(err));
-      status = job.status = 'failed';
+      status = job.status = (err instanceof pTimeout.TimeoutError) ? 'timeout' : 'failed';
       job.endTime = new Date();
       job.duration = job.endTime.getTime() - job.startTime.getTime();
       this.emit('failed', job, err);
