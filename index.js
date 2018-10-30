@@ -170,7 +170,7 @@ class Queue extends EventEmitter {
       error: null
     };
     if (this.processingStatuses) {
-      this.processingStatuses.waiting.inc({ jobName: data.name }, 1);
+      this.processingStatuses.waiting.inc({ jobName: jobData.name }, 1);
     }
     if (data.key) {
       await this.db.update({
@@ -195,10 +195,11 @@ class Queue extends EventEmitter {
       query.status = 'waiting';
     }
     this.emit('cancel', query);
-    if (this.processingStatuses) {
-      this.processingStatuses.cancelled.inc({ jobName: query.key }, 1);
+    const cancelledJob = await this.db.findOneAndUpdate(query, { $set: { status: 'cancelled' } });
+    if (cancelledJob && this.processingStatuses) {
+      this.processingStatuses[query.status].dec({ jobName: cancelledJob.value.name }, 1);
+      this.processingStatuses.cancelled.inc({ jobName: cancelledJob.value.name }, 1);
     }
-    await this.db.update(query, { $set: { status: 'cancelled' } });
   }
 
   async getNextJob() {
@@ -218,6 +219,7 @@ class Queue extends EventEmitter {
       returnOriginal: false
     });
     if (this.processingStatuses && job.value) {
+      this.processingStatuses.waiting.dec({ jobName: job.value.name }, 1);
       this.processingStatuses.processing.inc({ jobName: job.value.name }, 1);
     }
     return job;
@@ -234,10 +236,12 @@ class Queue extends EventEmitter {
       job.duration = job.endTime.getTime() - job.startTime.getTime();
       this.emit('finish', job);
       if (this.processingStatuses) {
+        this.processingStatuses.processing.dec({ jobName: job.name }, 1);
         this.processingStatuses.completed.inc({ jobName: job.name }, 1);
       }
     } catch (err) {
       if (this.processingStatuses) {
+        this.processingStatuses.processing.dec({ jobName: job.name }, 1);
         this.processingStatuses.failed.inc({ jobName: job.name }, 1);
       }
       error = JSON.stringify(err, Object.getOwnPropertyNames(err));
