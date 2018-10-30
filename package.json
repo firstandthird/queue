@@ -22,6 +22,7 @@
   "dependencies": {
     "joi": "^13.1.2",
     "mongodb": "^2.x.x",
+    "p-timeout": "^2.0.1",
     "p-times": "^1.0.1",
     "prom-client": "^11.1.3"
   }

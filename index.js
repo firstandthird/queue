@@ -5,10 +5,11 @@ const wait = setTimeout[promisify.custom];
 const fs = require('fs');
 const path = require('path');
 const pTimes = require('p-times');
+const pTimeout = require('p-timeout');
 const EventEmitter = require('events');
 
 class Queue extends EventEmitter {
-  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1, prom = undefined) {
+  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1, prom = undefined, timeout = 30000) {
     super();
     this.jobs = {};
     // mongoUrl can also be a reference to a mongo db:
@@ -19,6 +20,7 @@ class Queue extends EventEmitter {
     this.conn = null;
     this.Joi = Joi;
     this.maxThreads = maxThreads;
+    this.timeout = timeout;
     this.bound = {};
     if (prom) {
       this.processingTime = new prom.Summary({
@@ -228,9 +230,11 @@ class Queue extends EventEmitter {
   async runJob(job) {
     let status = 'completed';
     let error = null;
-
     try {
-      await this.jobs[job.name].process.call(this.bound, job.payload, this, job);
+      const promise = this.jobs[job.name].process.call(this.bound, job.payload, this, job);
+      if (promise instanceof Promise) {
+        await pTimeout(promise, this.timeout);
+      }
       status = job.status = 'completed';
       job.endTime = new Date();
       job.duration = job.endTime.getTime() - job.startTime.getTime();
@@ -245,7 +249,7 @@ class Queue extends EventEmitter {
         this.processingStatuses.failed.inc({ jobName: job.name }, 1);
       }
       error = JSON.stringify(err, Object.getOwnPropertyNames(err));
-      status = job.status = 'failed';
+      status = job.status = (err instanceof pTimeout.TimeoutError) ? 'timeout' : 'failed';
       job.endTime = new Date();
       job.duration = job.endTime.getTime() - job.startTime.getTime();
       this.emit('failed', job, err);
