@@ -5,7 +5,7 @@ const wait = setTimeout[promisify.custom];
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
 const clear = require('./clear.js');
-/*
+
 tap.test('queue job', async (t) => {
   await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 500);
@@ -749,7 +749,7 @@ tap.test('queue - timeout', async (t) => {
   await q.stop();
   t.end();
 });
-*/
+
 tap.test('queue - pause', async (t) => {
   await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 50, 1, undefined, 100);
@@ -762,13 +762,13 @@ tap.test('queue - pause', async (t) => {
     }),
     async process(data) {
       await new Promise(resolve => {
-        console.log('runnning');
         counter++;
       });
     }
   };
   q.createJob(job);
   await q.db.remove({});
+
   await t.resolves(q.queueJob({
     key: 'test',
     name: 'testJob',
@@ -776,33 +776,33 @@ tap.test('queue - pause', async (t) => {
       foo: 'bar'
     },
   }), 'Queues up job');
-  await wait(2000);
+  await wait(300);
   q.pause();
   const beforePause = counter;
-  console.log('paused');
+
   await t.resolves(q.queueJob({
-    key: 'test',
+    key: 'duringPause',
     name: 'testJob',
     payload: {
       foo: 'bar'
     },
   }), 'Queues up job');
-  await wait(2000);
+  await wait(300);
   const duringPause = counter;
 
   await q.start();
   await t.resolves(q.queueJob({
-    key: 'test',
+    key: 'afterPause',
     name: 'testJob',
     payload: {
       foo: 'bar'
     },
   }), 'Queues up job');
-  await wait(4000);
+  await wait(300);
   const afterPause = counter;
-  await q.stop();
   t.equal(beforePause, duringPause, 'job should not be running while paused');
   t.ok(duringPause < afterPause, 'job should resume running after pause');
-  console.log(counter);
+  t.equal(counter, 3, 'all jobs eventually run');
+  await q.stop();
   t.end();
 });
