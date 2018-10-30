@@ -364,7 +364,7 @@ tap.test('groupKeys will emit when all members of the group have finished', asyn
   t.equal(theGroupKey, undefined, 'group.finish does not fire until all members complete');
 
   letFinish.paul = true;
-  await wait(300);
+  await wait(1000);
   t.equal(theGroupKey, 'the beatles', 'group.finish event was called with groupkey');
   await q.stop();
   t.end();

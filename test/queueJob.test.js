@@ -5,7 +5,7 @@ const wait = setTimeout[promisify.custom];
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
 const clear = require('./clear.js');
-/*
+
 tap.test('queue job', async (t) => {
   await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 500);
@@ -334,12 +334,10 @@ tap.test('queue - multiple jobs run sequentially (concurrentcount = 1)', async (
   await wait(3000);
 
   t.ok(jobRun, 'Job appears to have run');
-  const processingDelay = Math.abs(finishTimes[0] - finishTimes[1]);
-
-  t.equal(processingDelay > 500, true, 'second job processed after first job completed');
 
   const runJobs = await q.db.find().toArray();
-
+  const processingDelay = Math.abs(runJobs[0].startTime - runJobs[1].startTime);
+  t.equal(processingDelay > 0, true, 'second job started after first job launched');
   const result3 = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
     payload: q.Joi.object().required(),
@@ -716,7 +714,42 @@ tap.test('queue - jobs can be bound to object (this === server)', async (t) => {
   await q.stop();
   t.end();
 });
-*/
+
+tap.test('queue - timeout', async (t) => {
+  await clear(mongoUrl, 'queue');
+  const q = new Queue(mongoUrl, 'queue', 50, 1, undefined, 100);
+  await q.start();
+  let timeoutPointer;
+  const job = {
+    name: 'testJob',
+    payloadValidation: q.Joi.object().keys({
+      foo: 'bar'
+    }),
+    async process(data) {
+      await new Promise(resolve => {
+        timeoutPointer = setTimeout(resolve, 5000);
+      });
+    }
+  };
+  q.createJob(job);
+  await q.db.remove({});
+  await t.resolves(q.queueJob({
+    key: 'test',
+    name: 'testJob',
+    payload: {
+      foo: 'bar'
+    },
+  }), 'Queues up job');
+  await wait(2000);
+  const runJobs = await q.db.find().toArray();
+  t.match(runJobs[0], {
+    status: 'timeout'
+  });
+  clearTimeout(timeoutPointer);
+  await q.stop();
+  t.end();
+});
+
 tap.test('queue - priority', async (t) => {
   await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 1000);

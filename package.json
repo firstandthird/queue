@@ -1,6 +1,6 @@
 {
   "name": "@firstandthird/queue",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "simple job queue",
   "main": "index.js",
   "engine": {},
@@ -22,6 +22,7 @@
   "dependencies": {
     "joi": "^13.1.2",
     "mongodb": "^2.x.x",
+    "p-timeout": "^2.0.1",
     "p-times": "^1.0.1",
     "prom-client": "^11.1.3"
   }

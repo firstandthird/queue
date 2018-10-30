@@ -5,10 +5,11 @@ const wait = setTimeout[promisify.custom];
 const fs = require('fs');
 const path = require('path');
 const pTimes = require('p-times');
+const pTimeout = require('p-timeout');
 const EventEmitter = require('events');
 
 class Queue extends EventEmitter {
-  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1, prom = undefined) {
+  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1, prom = undefined, timeout = 30000) {
     super();
     this.jobs = {};
     // mongoUrl can also be a reference to a mongo db:
@@ -19,17 +20,18 @@ class Queue extends EventEmitter {
     this.conn = null;
     this.Joi = Joi;
     this.maxThreads = maxThreads;
+    this.timeout = timeout;
     this.bound = {};
     if (prom) {
       this.processingTime = new prom.Summary({
-        name: 'processingTime',
+        name: 'queue_processing_milliseconds',
         help: 'job processing time',
         labelNames: ['jobName']
       });
       this.processingStatuses = {};
       ['waiting', 'failed', 'completed', 'processing', 'cancelled'].forEach(status => {
         this.processingStatuses[status] = new prom.Gauge({
-          name: status,
+          name: `queue_${status}_count`,
           help: 'job status number',
           labelNames: ['jobName']
         });
@@ -172,7 +174,7 @@ class Queue extends EventEmitter {
       error: null
     };
     if (this.processingStatuses) {
-      this.processingStatuses.waiting.inc({ jobName: data.name }, 1);
+      this.processingStatuses.waiting.inc({ jobName: jobData.name }, 1);
     }
     if (data.key) {
       await this.db.update({
@@ -197,10 +199,11 @@ class Queue extends EventEmitter {
       query.status = 'waiting';
     }
     this.emit('cancel', query);
-    if (this.processingStatuses) {
-      this.processingStatuses.cancelled.inc({ jobName: query.key }, 1);
+    const cancelledJob = await this.db.findOneAndUpdate(query, { $set: { status: 'cancelled' } });
+    if (cancelledJob && this.processingStatuses) {
+      this.processingStatuses[query.status].dec({ jobName: cancelledJob.value.name }, 1);
+      this.processingStatuses.cancelled.inc({ jobName: cancelledJob.value.name }, 1);
     }
-    await this.db.update(query, { $set: { status: 'cancelled' } });
   }
 
   async getNextJob() {
@@ -221,6 +224,7 @@ class Queue extends EventEmitter {
       returnOriginal: false
     });
     if (this.processingStatuses && job.value) {
+      this.processingStatuses.waiting.dec({ jobName: job.value.name }, 1);
       this.processingStatuses.processing.inc({ jobName: job.value.name }, 1);
     }
     return job;
@@ -229,22 +233,26 @@ class Queue extends EventEmitter {
   async runJob(job) {
     let status = 'completed';
     let error = null;
-
     try {
-      await this.jobs[job.name].process.call(this.bound, job.payload, this, job);
+      const promise = this.jobs[job.name].process.call(this.bound, job.payload, this, job);
+      if (promise instanceof Promise) {
+        await pTimeout(promise, this.timeout);
+      }
       status = job.status = 'completed';
       job.endTime = new Date();
       job.duration = job.endTime.getTime() - job.startTime.getTime();
       this.emit('finish', job);
       if (this.processingStatuses) {
+        this.processingStatuses.processing.dec({ jobName: job.name }, 1);
         this.processingStatuses.completed.inc({ jobName: job.name }, 1);
       }
     } catch (err) {
       if (this.processingStatuses) {
+        this.processingStatuses.processing.dec({ jobName: job.name }, 1);
         this.processingStatuses.failed.inc({ jobName: job.name }, 1);
       }
       error = JSON.stringify(err, Object.getOwnPropertyNames(err));
-      status = job.status = 'failed';
+      status = job.status = (err instanceof pTimeout.TimeoutError) ? 'timeout' : 'failed';
       job.endTime = new Date();
       job.duration = job.endTime.getTime() - job.startTime.getTime();
       this.emit('failed', job, err);
@@ -271,7 +279,7 @@ class Queue extends EventEmitter {
     }
     const group = await this.db.find({ groupKey: job.groupKey, status: { $in: ['waiting', 'processing'] } }).toArray();
     if (group.length === 0) {
-      this.emit('group.finish', job.groupKey);
+      this.emit('group.finish', { groupKey: job.groupKey });
     }
   }
 
