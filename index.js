@@ -229,14 +229,10 @@ class Queue extends EventEmitter {
     let status = 'completed';
     let error = null;
     try {
-      await pTimeout(new Promise(async (resolve, reject) => {
-        try {
-          await this.jobs[job.name].process.call(this.bound, job.payload, this, job);
-          return resolve();
-        } catch (e) {
-          return reject(e);
-        }
-      }), this.timeout);
+      const promise = this.jobs[job.name].process.call(this.bound, job.payload, this, job);
+      if (promise instanceof Promise) {
+        await pTimeout(promise, this.timeout);
+      }
       status = job.status = 'completed';
       job.endTime = new Date();
       job.duration = job.endTime.getTime() - job.startTime.getTime();
