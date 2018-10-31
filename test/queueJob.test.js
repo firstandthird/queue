@@ -2,6 +2,7 @@ const tap = require('tap');
 const Queue = require('../');
 const { promisify } = require('util');
 const wait = setTimeout[promisify.custom];
+const { MongoClient } = require('mongodb');
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
 const clear = require('./clear.js');
@@ -870,5 +871,12 @@ tap.test('queue - stop cancels outstanding jobs', async (t) => {
   await wait(4000);
   t.equal(counter, 0, 'no jobs should run');
   clearTimeout(timeoutPointer);
+  const conn = await MongoClient.connect(mongoUrl);
+  const db = await conn.collection('queue');
+  const coll = await db.find({}).toArray();
+  await conn.close();
+  coll.forEach(c => {
+    t.equal(c.status, 'cancelled');
+  });
   t.end();
 });

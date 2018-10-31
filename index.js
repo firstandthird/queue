@@ -83,11 +83,30 @@ class Queue extends EventEmitter {
   async stop() {
     this.exiting = true;
     this.paused = true;
-    // get all outstanding jobs and cancel them:
-    const processing = await this.findJobs({ status: 'processing' });
-    processing.forEach(p => {
-      this.processingStatuses.processing.dec({ jobName: p.name }, 1);
-      this.processingStatuses.cancelled.inc({ jobName: p.name }, 1);
+    // get all outstanding and waiting jobs and cancel them:
+    const processing = await this.findJobs({
+      $or: [
+        { status: 'processing' },
+        { status: 'waiting' }
+      ]
+    });
+    if (this.processingStatuses) {
+      processing.forEach(p => {
+        this.processingStatuses[p.status].dec({ jobName: p.name }, 1);
+        this.processingStatuses.cancelled.inc({ jobName: p.name }, 1);
+      });
+    }
+    await this.db.update({
+      $or: [
+        { status: 'processing' },
+        { status: 'waiting' }
+      ]
+    }, {
+      $set: {
+        status: 'cancelled'
+      }
+    }, {
+      multi: true
     });
     await this.close();
   }
