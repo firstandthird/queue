@@ -82,6 +82,13 @@ class Queue extends EventEmitter {
 
   async stop() {
     this.exiting = true;
+    this.paused = true;
+    // get all outstanding jobs and cancel them:
+    const processing = await this.findJobs({ status: 'processing' });
+    processing.forEach(p => {
+      this.processingStatuses.processing.dec({ jobName: p.name }, 1);
+      this.processingStatuses.cancelled.inc({ jobName: p.name }, 1);
+    });
     await this.close();
   }
 
@@ -90,12 +97,13 @@ class Queue extends EventEmitter {
   }
 
   async process() {
+    if (this.exiting) {
+      return;
+    }
+
     if (this.paused) {
       await wait(this.waitDelay);
       return this.process();
-    }
-    if (this.exiting) {
-      return;
     }
 
     const job = await this.getNextJob();
@@ -247,6 +255,10 @@ class Queue extends EventEmitter {
       const promise = this.jobs[job.name].process.call(this.bound, job.payload, this, job);
       if (promise instanceof Promise) {
         await pTimeout(promise, this.timeout);
+        // if queue has been stopped in the meantime no need to record this:
+        if (!this.db) {
+          return;
+        }
       }
       status = job.status = 'completed';
       job.endTime = new Date();

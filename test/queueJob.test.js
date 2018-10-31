@@ -806,3 +806,69 @@ tap.test('queue - pause', async (t) => {
   await q.stop();
   t.end();
 });
+
+tap.test('queue - stop cancels outstanding jobs', async (t) => {
+  await clear(mongoUrl, 'queue');
+  const q = new Queue(mongoUrl, 'queue', 1000, 1);
+  await q.start();
+  let counter = 0;
+  const job = {
+    name: 'testJob',
+    payloadValidation: q.Joi.object().keys({
+      foo: 'bar'
+    }),
+    async process(data) {
+      await new Promise(resolve => {
+        counter++;
+      });
+    }
+  };
+  q.createJob(job);
+  let timeoutPointer;
+  const job2 = {
+    name: 'testJob2',
+    payloadValidation: q.Joi.object().keys({
+      foo: 'bar'
+    }),
+    async process(data) {
+      await new Promise(resolve => {
+        timeoutPointer = setTimeout(() => {
+          resolve();
+        }, 3000);
+      });
+    }
+  };
+  q.createJob(job2);
+  await q.db.remove({});
+  const runAfter = new Date().getTime() + 1000;
+  q.queueJob({
+    key: 'test',
+    name: 'testJob',
+    runAfter,
+    payload: {
+      foo: 'bar'
+    },
+  });
+
+  q.queueJob({
+    key: 'test2',
+    name: 'testJob',
+    runAfter,
+    payload: {
+      foo: 'bar'
+    },
+  });
+
+  q.queueJob({
+    key: 'test3',
+    name: 'testJob2',
+    payload: {
+      foo: 'bar'
+    },
+  });
+  await q.stop();
+  await wait(4000);
+  t.equal(counter, 0, 'no jobs should run');
+  clearTimeout(timeoutPointer);
+  t.end();
+});
