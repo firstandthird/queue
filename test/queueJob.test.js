@@ -810,60 +810,55 @@ tap.test('queue - pause', async (t) => {
 
 tap.test('queue - stop cancels outstanding jobs', async (t) => {
   await clear(mongoUrl, 'queue');
-  const q = new Queue(mongoUrl, 'queue', 1000, 1);
+  const q = new Queue(mongoUrl, 'queue', 100, 1);
   await q.start();
   let counter = 0;
+  const timeouts = [];
   const job = {
+    name: 'completed',
+    payloadValidation: q.Joi.object().keys({
+      foo: 'bar'
+    }),
+    process(data) {
+      counter++;
+    }
+  };
+  q.createJob(job);
+  const job2 = {
     name: 'testJob',
     payloadValidation: q.Joi.object().keys({
       foo: 'bar'
     }),
     async process(data) {
       await new Promise(resolve => {
-        counter++;
-        resolve();
-      });
-    }
-  };
-  q.createJob(job);
-  let timeoutPointer;
-  const job2 = {
-    name: 'testJob2',
-    payloadValidation: q.Joi.object().keys({
-      foo: 'bar'
-    }),
-    async process(data) {
-      await new Promise(resolve => {
-        timeoutPointer = setTimeout(() => {
+        timeouts.push(setTimeout(() => {
+          counter++;
           resolve();
-        }, 3000);
+        }, 3000));
       });
     }
   };
   q.createJob(job2);
   await q.db.remove({});
-  const runAfter = new Date().getTime() + 1000;
-  q.queueJob({
+  await q.queueJob({
     key: 'didRun',
-    name: 'testJob',
+    name: 'completed',
     payload: {
       foo: 'bar'
     },
   });
-  await wait(1300);
-  q.queueJob({
+  await wait(300);
+  await q.queueJob({
     key: 'test',
     name: 'testJob',
-    runAfter,
     payload: {
       foo: 'bar'
     },
   });
 
-  q.queueJob({
+  await q.queueJob({
     key: 'test2',
     name: 'testJob',
-    runAfter,
     payload: {
       foo: 'bar'
     },
@@ -871,7 +866,7 @@ tap.test('queue - stop cancels outstanding jobs', async (t) => {
 
   q.queueJob({
     key: 'test3',
-    name: 'testJob2',
+    name: 'testJob',
     payload: {
       foo: 'bar'
     },
@@ -879,16 +874,16 @@ tap.test('queue - stop cancels outstanding jobs', async (t) => {
   await q.stop();
   await wait(4000);
   t.equal(counter, 1, 'only the first job should should run');
-  clearTimeout(timeoutPointer);
+  timeouts.forEach(pointer => clearTimeout(pointer));
   const conn = await MongoClient.connect(mongoUrl);
   const db = await conn.collection('queue');
   const coll = await db.find({}).toArray();
   await conn.close();
   coll.forEach(c => {
     if (c.key === 'didRun') {
-      t.notEqual(c.status, 'cancelled', 'only outstanding jobs were cancelled');
+      t.equal(c.status, 'completed', 'outstanding jobs were cancelled');
     } else {
-      t.equal(c.status, 'cancelled', 'outstanding jobs were cancelled');
+      t.notEqual(c.status, 'processing', 'outstanding jobs were cancelled');
     }
   });
   t.end();

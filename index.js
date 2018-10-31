@@ -84,30 +84,8 @@ class Queue extends EventEmitter {
     this.exiting = true;
     this.paused = true;
     // get all outstanding and waiting jobs and cancel them:
-    const outstanding = await this.findJobs({
-      $or: [
-        { status: 'processing' },
-        { status: 'waiting' }
-      ]
-    });
-    if (this.processingStatuses) {
-      outstanding.forEach(p => {
-        this.processingStatuses[p.status].dec({ jobName: p.name }, 1);
-        this.processingStatuses.cancelled.inc({ jobName: p.name }, 1);
-      });
-    }
-    await this.db.update({
-      $or: [
-        { status: 'processing' },
-        { status: 'waiting' }
-      ]
-    }, {
-      $set: {
-        status: 'cancelled'
-      }
-    }, {
-      multi: true
-    });
+    const jobs = await this.findJobs({ status: 'processing' });
+    await Promise.all(jobs.map(j => this.cancel(j._id)));
     await this.close();
   }
 
@@ -229,6 +207,16 @@ class Queue extends EventEmitter {
     }
     this.emit('queue', jobData);
     return jobData._id;
+  }
+
+  async cancel(id) {
+    console.log('cancelling %s', id);
+    this.emit('cancel', { id });
+    const cancelledJob = await this.db.findOneAndUpdate({ _id: id }, { $set: { status: 'cancelled' } });
+    if (cancelledJob && this.processingStatuses) {
+      this.processingStatuses[cancelledJob.value.status].dec({ jobName: cancelledJob.value.name }, 1);
+      this.processingStatuses.cancelled.inc({ jobName: cancelledJob.value.name }, 1);
+    }
   }
 
   async cancelJob(query) {
