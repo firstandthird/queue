@@ -60,6 +60,7 @@ tap.test('queue job', async (t) => {
 
   const result = q.Joi.validate(jobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -82,6 +83,7 @@ tap.test('queue job', async (t) => {
 
   const result2 = q.Joi.validate(processingJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -106,6 +108,7 @@ tap.test('queue job', async (t) => {
 
   const result3 = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -169,6 +172,7 @@ tap.test('queue job - no payload validation', async (t) => {
 
   const result = q.Joi.validate(jobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -191,6 +195,7 @@ tap.test('queue job - no payload validation', async (t) => {
 
   const result2 = q.Joi.validate(processingJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -216,6 +221,7 @@ tap.test('queue job - no payload validation', async (t) => {
 
   const result3 = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -273,6 +279,7 @@ tap.test('queue job - no payload validation', async (t) => {
   const runJobs = await q.db.find().toArray();
   const result = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -340,6 +347,7 @@ tap.test('queue - multiple jobs run sequentially (concurrentcount = 1)', async (
   t.equal(processingDelay > 0, true, 'second job started after first job launched');
   const result3 = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -408,6 +416,7 @@ tap.test('queue - multiple concurrent jobs (concurrentCount > 1)', async (t) => 
 
   const result3 = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -464,6 +473,7 @@ tap.test('queue - handles errors in job', async (t) => {
 
   const result = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -527,6 +537,7 @@ tap.test('queue - runAfter', async (t) => {
 
   const result = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -590,6 +601,7 @@ tap.test('queue - cancelJob', async (t) => {
 
   const result = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -657,6 +669,7 @@ tap.test('queue - update job', async (t) => {
 
   const result = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -803,79 +816,6 @@ tap.test('queue - pause', async (t) => {
   t.equal(beforePause, duringPause, 'job should not be running while paused');
   t.ok(duringPause < afterPause, 'job should resume running after pause');
   t.equal(counter, 3, 'all jobs eventually run');
-  await q.stop();
-  t.end();
-});
-
-tap.test('queue - priority', async (t) => {
-  await clear(mongoUrl, 'queue');
-  const q = new Queue(mongoUrl, 'queue', 1000);
-  await q.start();
-
-  const jobTimes = {};
-  const runAfter = new Date().getTime() + 1000;
-  const job = {
-    name: 'testJob',
-    priority: 1,
-    payloadValidation: q.Joi.object().keys({
-      foo: 'bar'
-    }),
-    runAfter,
-    process(data) {
-      jobTimes.job = new Date().getTime();
-    }
-  };
-  q.createJob(job);
-
-  const job2 = {
-    name: 'testJob2',
-    priority: 5,
-    payloadValidation: q.Joi.object().keys({
-      foo: 'bar'
-    }),
-    runAfter,
-    process(data) {
-      jobTimes.job2 = new Date().getTime();
-    }
-  };
-  q.createJob(job2);
-
-  const job3 = {
-    name: 'testJob3',
-    priority: 11,
-    payloadValidation: q.Joi.object().keys({
-      foo: 'bar'
-    }),
-    runAfter,
-    process(data) {
-      jobTimes.job3 = new Date().getTime();
-    }
-  };
-  q.createJob(job3);
-
-  await q.db.remove({});
-
-  q.queueJob({
-    name: 'testJob3',
-    payload: {
-      foo: 'bar'
-    },
-  });
-  q.queueJob({
-    name: 'testJob',
-    payload: {
-      foo: 'bar'
-    },
-  });
-  q.queueJob({
-    name: 'testJob2',
-    payload: {
-      foo: 'bar'
-    },
-  });
-  await wait(3000);
-  const runJobs = await q.db.find().toArray();
-  t.ok(jobTimes.job < jobTimes.job2 < jobTimes.job3, 'jobs run in priority order');
   await q.stop();
   t.end();
 });
