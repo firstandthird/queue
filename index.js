@@ -163,6 +163,7 @@ class Queue extends EventEmitter {
 
     const jobData = {
       payload: data.payload,
+      priority: data.priority,
       name: data.name,
       runAfter: data.runAfter || new Date(),
       key: data.key || null,
@@ -219,7 +220,7 @@ class Queue extends EventEmitter {
     }, {
       sort: {
         priority: 1,
-        createdOn: 1
+        // createdOn: 1
       },
       returnOriginal: false
     });

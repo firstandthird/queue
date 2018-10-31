@@ -5,7 +5,7 @@ const wait = setTimeout[promisify.custom];
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
 const clear = require('./clear.js');
-
+/*
 tap.test('queue job', async (t) => {
   await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 500);
@@ -749,21 +749,23 @@ tap.test('queue - timeout', async (t) => {
   await q.stop();
   t.end();
 });
-
+*/
 tap.test('queue - priority', async (t) => {
   await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 1000);
   await q.start();
 
   const jobTimes = {};
+  const runAfter = new Date().getTime() + 1000;
   const job = {
     name: 'testJob',
     priority: 1,
     payloadValidation: q.Joi.object().keys({
       foo: 'bar'
     }),
-    runAfter: new Date().getTime() + 150,
+    runAfter,
     process(data) {
+      console.log('j1');
       jobTimes.job = new Date().getTime();
     }
   };
@@ -775,8 +777,9 @@ tap.test('queue - priority', async (t) => {
     payloadValidation: q.Joi.object().keys({
       foo: 'bar'
     }),
-    runAfter: new Date().getTime() + 150,
+    runAfter,
     process(data) {
+      console.log('j2');
       jobTimes.job2 = new Date().getTime();
     }
   };
@@ -788,8 +791,9 @@ tap.test('queue - priority', async (t) => {
     payloadValidation: q.Joi.object().keys({
       foo: 'bar'
     }),
-    runAfter: new Date().getTime() + 150,
+    runAfter,
     process(data) {
+      console.log('j3');
       jobTimes.job3 = new Date().getTime();
     }
   };
@@ -797,25 +801,26 @@ tap.test('queue - priority', async (t) => {
 
   await q.db.remove({});
 
-  await t.resolves(q.queueJob({
+  q.queueJob({
     name: 'testJob3',
     payload: {
       foo: 'bar'
     },
-  }), 'Queues up job');
-  await t.resolves(q.queueJob({
+  });
+  q.queueJob({
     name: 'testJob',
     payload: {
       foo: 'bar'
     },
-  }), 'Queues up job');
-  await t.resolves(q.queueJob({
+  });
+  q.queueJob({
     name: 'testJob2',
     payload: {
       foo: 'bar'
     },
-  }), 'Queues up job');
-  await wait(2000);
+  });
+  console.log('start running now');
+  await wait(3000);
   const runJobs = await q.db.find().toArray();
   console.log(jobTimes);
 
