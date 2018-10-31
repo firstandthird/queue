@@ -210,7 +210,6 @@ class Queue extends EventEmitter {
   }
 
   async cancel(id) {
-    console.log('cancelling %s', id);
     this.emit('cancel', { id });
     const cancelledJob = await this.db.findOneAndUpdate({ _id: id }, { $set: { status: 'cancelled' } });
     if (cancelledJob && this.processingStatuses) {
