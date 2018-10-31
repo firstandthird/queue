@@ -821,6 +821,7 @@ tap.test('queue - stop cancels outstanding jobs', async (t) => {
     async process(data) {
       await new Promise(resolve => {
         counter++;
+        resolve();
       });
     }
   };
@@ -842,6 +843,14 @@ tap.test('queue - stop cancels outstanding jobs', async (t) => {
   q.createJob(job2);
   await q.db.remove({});
   const runAfter = new Date().getTime() + 1000;
+  q.queueJob({
+    key: 'didRun',
+    name: 'testJob',
+    payload: {
+      foo: 'bar'
+    },
+  });
+  await wait(1300);
   q.queueJob({
     key: 'test',
     name: 'testJob',
@@ -869,14 +878,18 @@ tap.test('queue - stop cancels outstanding jobs', async (t) => {
   });
   await q.stop();
   await wait(4000);
-  t.equal(counter, 0, 'no jobs should run');
+  t.equal(counter, 1, 'only the first job should should run');
   clearTimeout(timeoutPointer);
   const conn = await MongoClient.connect(mongoUrl);
   const db = await conn.collection('queue');
   const coll = await db.find({}).toArray();
   await conn.close();
   coll.forEach(c => {
-    t.equal(c.status, 'cancelled');
+    if (c.key === 'didRun') {
+      t.notEqual(c.status, 'cancelled', 'only outstanding jobs were cancelled');
+    } else {
+      t.equal(c.status, 'cancelled', 'outstanding jobs were cancelled');
+    }
   });
   t.end();
 });
