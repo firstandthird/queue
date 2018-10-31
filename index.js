@@ -67,6 +67,12 @@ class Queue extends EventEmitter {
   }
 
   async start() {
+    // start just unpauses if we are already paused:
+    if (this.paused) {
+      this.paused = false;
+      return;
+    }
+    this.paused = false;
     this.exiting = false;
     if (!this.conn) {
       await this.connect();
@@ -79,7 +85,15 @@ class Queue extends EventEmitter {
     await this.close();
   }
 
+  pause() {
+    this.paused = true;
+  }
+
   async process() {
+    if (this.paused) {
+      await wait(this.waitDelay);
+      return this.process();
+    }
     if (this.exiting) {
       return;
     }
@@ -144,7 +158,6 @@ class Queue extends EventEmitter {
     if (typeof this.jobs[data.name] !== 'object') {
       throw new Error('Job not registered');
     }
-
     const job = this.jobs[data.name];
 
     if (job.payloadValidation) {
