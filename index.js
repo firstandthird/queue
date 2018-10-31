@@ -50,7 +50,7 @@ class Queue extends EventEmitter {
     if (!this.db) {
       this.conn = await MongoClient.connect(this.mongoUrl);
       this.db = await this.conn.collection(this.collectionName);
-      this.db.createIndex({ status: 1, startTime: 1 }, { background: true });
+      this.db.createIndex({ status: 1, startTime: 1, priority: 1 }, { background: true });
     }
     this.exiting = false;
   }
@@ -176,7 +176,7 @@ class Queue extends EventEmitter {
 
     const jobData = {
       payload: data.payload,
-      priority: data.priority,
+      priority: job.priority || 0,
       name: data.name,
       runAfter: data.runAfter || new Date(),
       key: data.key || null,

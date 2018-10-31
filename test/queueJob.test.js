@@ -5,7 +5,7 @@ const wait = setTimeout[promisify.custom];
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
 const clear = require('./clear.js');
-/*
+
 tap.test('queue job', async (t) => {
   await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 500);
@@ -750,7 +750,6 @@ tap.test('queue - timeout', async (t) => {
   t.end();
 });
 
-
 tap.test('queue - pause', async (t) => {
   await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 50, 1, undefined, 100);
@@ -807,7 +806,7 @@ tap.test('queue - pause', async (t) => {
   await q.stop();
   t.end();
 });
-*/
+
 tap.test('queue - priority', async (t) => {
   await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 1000);
@@ -823,7 +822,6 @@ tap.test('queue - priority', async (t) => {
     }),
     runAfter,
     process(data) {
-      console.log('j1');
       jobTimes.job = new Date().getTime();
     }
   };
@@ -837,7 +835,6 @@ tap.test('queue - priority', async (t) => {
     }),
     runAfter,
     process(data) {
-      console.log('j2');
       jobTimes.job2 = new Date().getTime();
     }
   };
@@ -851,7 +848,6 @@ tap.test('queue - priority', async (t) => {
     }),
     runAfter,
     process(data) {
-      console.log('j3');
       jobTimes.job3 = new Date().getTime();
     }
   };
@@ -877,11 +873,9 @@ tap.test('queue - priority', async (t) => {
       foo: 'bar'
     },
   });
-  console.log('start running now');
   await wait(3000);
   const runJobs = await q.db.find().toArray();
-  console.log(jobTimes);
-
+  t.ok(jobTimes.job < jobTimes.job2 < jobTimes.job3, 'jobs run in priority order');
   await q.stop();
   t.end();
 });
