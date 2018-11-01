@@ -307,10 +307,11 @@ class Queue extends EventEmitter {
   }
 
   async retry(id) {
-    const job = (await this.findJobs({ _id: id }))[0];
     await this.db.update({ _id: id }, {
+      $inc: {
+        retryCount: 1
+      },
       $set: {
-        retryCount: job.retryCount + 1,
         status: 'waiting',
         startTime: null
       }
