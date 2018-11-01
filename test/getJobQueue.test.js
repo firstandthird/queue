@@ -43,6 +43,7 @@ tap.test('get job queue', async (t) => {
     payload: q.Joi.object().required(),
     priority: q.Joi.number().required(),
     name: q.Joi.string().required(),
+    retryCount: q.Joi.number().required(),
     runAfter: q.Joi.date().required(),
     key: q.Joi.only(null).required(),
     groupKey: q.Joi.only(null).required(),
