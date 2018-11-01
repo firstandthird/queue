@@ -41,6 +41,7 @@ tap.test('get job queue', async (t) => {
   const result = q.Joi.validate(jobQueue, q.Joi.array().items({
     _id: q.Joi.object().required(),
     payload: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
     key: q.Joi.only(null).required(),

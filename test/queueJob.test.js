@@ -60,6 +60,7 @@ tap.test('queue job', async (t) => {
 
   const result = q.Joi.validate(jobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -82,6 +83,7 @@ tap.test('queue job', async (t) => {
 
   const result2 = q.Joi.validate(processingJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -106,6 +108,7 @@ tap.test('queue job', async (t) => {
 
   const result3 = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -169,6 +172,7 @@ tap.test('queue job - no payload validation', async (t) => {
 
   const result = q.Joi.validate(jobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -191,6 +195,7 @@ tap.test('queue job - no payload validation', async (t) => {
 
   const result2 = q.Joi.validate(processingJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -216,6 +221,7 @@ tap.test('queue job - no payload validation', async (t) => {
 
   const result3 = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -273,6 +279,7 @@ tap.test('queue job - no payload validation', async (t) => {
   const runJobs = await q.db.find().toArray();
   const result = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -340,6 +347,7 @@ tap.test('queue - multiple jobs run sequentially (concurrentcount = 1)', async (
   t.equal(processingDelay > 0, true, 'second job started after first job launched');
   const result3 = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -408,6 +416,7 @@ tap.test('queue - multiple concurrent jobs (concurrentCount > 1)', async (t) => 
 
   const result3 = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -464,6 +473,7 @@ tap.test('queue - handles errors in job', async (t) => {
 
   const result = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -527,6 +537,7 @@ tap.test('queue - runAfter', async (t) => {
 
   const result = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -590,6 +601,7 @@ tap.test('queue - cancelJob', async (t) => {
 
   const result = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
@@ -657,6 +669,7 @@ tap.test('queue - update job', async (t) => {
 
   const result = q.Joi.validate(runJobs, q.Joi.array().items({
     _id: q.Joi.object().required(),
+    priority: q.Joi.number().required(),
     payload: q.Joi.object().required(),
     name: q.Joi.string().required(),
     runAfter: q.Joi.date().required(),
