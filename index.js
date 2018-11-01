@@ -183,6 +183,7 @@ class Queue extends EventEmitter {
       payload: data.payload,
       priority: job.priority || 0,
       name: data.name,
+      retryCount: 0,
       runAfter: data.runAfter || new Date(),
       key: data.key || null,
       groupKey: data.groupKey || null,
@@ -303,6 +304,18 @@ class Queue extends EventEmitter {
       }
     });
     this.notifyGroup(job);
+  }
+
+  async retry(id) {
+    await this.db.update({ _id: id }, {
+      $inc: {
+        retryCount: 1
+      },
+      $set: {
+        status: 'waiting',
+        startTime: null
+      }
+    });
   }
 
   async notifyGroup(job) {
