@@ -82,6 +82,10 @@ class Queue extends EventEmitter {
 
   async stop() {
     this.exiting = true;
+    this.paused = true;
+    // get all outstanding and waiting jobs and cancel them:
+    const jobs = await this.findJobs({ status: 'processing' });
+    await Promise.all(jobs.map(j => this.cancel(j._id)));
     await this.close();
   }
 
@@ -90,12 +94,13 @@ class Queue extends EventEmitter {
   }
 
   async process() {
+    if (this.exiting) {
+      return;
+    }
+
     if (this.paused) {
       await wait(this.waitDelay);
       return this.process();
-    }
-    if (this.exiting) {
-      return;
     }
 
     const job = await this.getNextJob();
@@ -207,6 +212,15 @@ class Queue extends EventEmitter {
     return jobData._id;
   }
 
+  async cancel(id) {
+    this.emit('cancel', { id });
+    const cancelledJob = await this.db.findOneAndUpdate({ _id: id }, { $set: { status: 'cancelled' } });
+    if (cancelledJob && this.processingStatuses) {
+      this.processingStatuses[cancelledJob.value.status].dec({ jobName: cancelledJob.value.name }, 1);
+      this.processingStatuses.cancelled.inc({ jobName: cancelledJob.value.name }, 1);
+    }
+  }
+
   async cancelJob(query) {
     // if no status was specified, this will only cancel the job if it is 'waiting'
     if (!query.status) {
@@ -251,6 +265,10 @@ class Queue extends EventEmitter {
       const promise = this.jobs[job.name].process.call(this.bound, job.payload, this, job);
       if (promise instanceof Promise) {
         await pTimeout(promise, this.timeout);
+        // if queue has been stopped in the meantime no need to record this:
+        if (!this.db) {
+          return;
+        }
       }
       status = job.status = 'completed';
       job.endTime = new Date();
