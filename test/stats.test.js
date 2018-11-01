@@ -51,6 +51,7 @@ tap.test('get job stats', async (t) => {
 
   await t.resolves(q.queueJob({
     name: 'testJob',
+    groupKey: 'key1',
     payload: {
       foo: 'bar'
     }
@@ -95,6 +96,8 @@ tap.test('get job stats', async (t) => {
   t.same(stats, { waiting: 1, processing: 1, cancelled: 1, failed: 1, completed: 1 });
   const stats2 = await q.stats(new Date().getTime() - (48 * 3600));
   t.same(stats2, { waiting: 1, processing: 1, cancelled: 1, failed: 1, completed: 1 });
+  const stats3 = await q.stats(new Date().getTime() - (48 * 3600), 'key1');
+  t.same(stats3, { completed: 1 });
 
   // Wait so processing job can finish
   await wait(1000);

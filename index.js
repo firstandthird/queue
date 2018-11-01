@@ -301,13 +301,17 @@ class Queue extends EventEmitter {
     return this.db.find(query).toArray();
   }
 
-  async stats(since) {
+  async stats(since, groupKey) {
     if (!since) {
       since = new Date().getTime() - (24 * 1000 * 60 * 60);
     }
     since = new Date(since);
+    const $match = { createdOn: { $gt: since } };
+    if (groupKey) {
+      $match.groupKey = groupKey;
+    }
     const stats = await this.db.aggregate([
-      { $match: { createdOn: { $gt: since } } },
+      { $match },
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ]).toArray();
     // reduce results to an object like { waiting: x, processing: x2, ... }
