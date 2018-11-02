@@ -318,6 +318,16 @@ class Queue extends EventEmitter {
     });
   }
 
+  async clear() {
+    const result = await this.findJobs({
+      $or: [
+        { status: 'waiting' },
+        { status: 'processing' }
+      ]
+    });
+    await Promise.all(result.map(j => this.cancel(j._id)));
+  }
+
   async notifyGroup(job) {
     if (!job.groupKey) {
       return;
