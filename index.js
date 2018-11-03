@@ -9,7 +9,7 @@ const pTimeout = require('p-timeout');
 const EventEmitter = require('events');
 
 class Queue extends EventEmitter {
-  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1, prom = undefined, timeout = 30000) {
+  constructor(mongoUrl, collectionName, waitDelay = 500, maxThreads = 1, prom = undefined, timeout = 30000, autoretry = false) {
     super();
     this.jobs = {};
     // mongoUrl can also be a reference to a mongo db:
@@ -22,6 +22,7 @@ class Queue extends EventEmitter {
     this.maxThreads = maxThreads;
     this.timeout = timeout;
     this.bound = {};
+    this.autoretry = autoretry;
     if (prom) {
       this.processingTime = new prom.Summary({
         name: 'queue_processing_milliseconds',
@@ -290,19 +291,28 @@ class Queue extends EventEmitter {
       job.duration = job.endTime.getTime() - job.startTime.getTime();
       this.emit('failed', job, err);
     }
-    if (this.processingTime) {
-      this.processingTime.observe({ jobName: job.name }, job.duration);
-    }
-    await this.db.update({
-      _id: job._id
-    }, {
+    const packet = {
       $set: {
         endTime: job.endTime,
         duration: job.duration,
         status,
         error
       }
-    });
+    };
+    // autoretry always retries
+    if (this.autoretry && status !== 'completed') {
+      packet.$set.status = 'waiting';
+      packet.$set.startTime = null;
+      packet.$inc = {
+        retryCount: 1
+      };
+    }
+    if (this.processingTime) {
+      this.processingTime.observe({ jobName: job.name }, job.duration);
+    }
+    await this.db.update({
+      _id: job._id
+    }, packet);
     this.notifyGroup(job);
   }
 
