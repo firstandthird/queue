@@ -200,13 +200,7 @@ tap.test('get job stats -1', async (t) => {
   t.same(stats3, { completed: 1 });
   const stats4 = await q.stats(-1);
   t.same(stats4, { processing: 1, completed: 1, waiting: 1, cancelled: 1, failed: 1 });
-  console.log('-----');
-  console.log('-----');
-  console.log('-----');
-  console.log(retryJob);
-  const stats5 = await q.stats(-1, undefined, retryJob.name);
-  console.log('+++');
-  console.log(stats5);
+  const stats5 = await q.stats(-1, undefined, retryJob[0].name);
   t.same(stats5, { processing: 1 });
   // Wait so processing job can finish
   await wait(1000);

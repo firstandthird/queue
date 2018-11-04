@@ -358,8 +358,6 @@ class Queue extends EventEmitter {
     if (groupKey) {
       $match.groupKey = groupKey;
     }
-    console.log('???');
-    console.log(jobName);
     if (jobName) {
       $match.name = jobName;
     }
