@@ -6,7 +6,7 @@ const prom = require('prom-client');
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
 const clear = require('./clear.js');
-/*
+
 tap.test('get job stats', async (t) => {
   await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 100);
@@ -105,7 +105,7 @@ tap.test('get job stats', async (t) => {
   await q.stop();
   t.end();
 });
-*/
+
 tap.test('get job stats -1', async (t) => {
   await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 100);
