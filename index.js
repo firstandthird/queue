@@ -346,7 +346,7 @@ class Queue extends EventEmitter {
     return this.db.find(query).toArray();
   }
 
-  async stats(since, groupKey, job) {
+  async stats(since, groupKey, jobName) {
     const $match = {};
     if (since !== -1) {
       if (!since) {
@@ -358,8 +358,10 @@ class Queue extends EventEmitter {
     if (groupKey) {
       $match.groupKey = groupKey;
     }
-    if (job) {
-      $match._id = job;
+    console.log('???');
+    console.log(jobName);
+    if (jobName) {
+      $match.name = jobName;
     }
     const query = {};
     if (Object.keys($match)) {

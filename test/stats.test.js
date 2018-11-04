@@ -6,7 +6,7 @@ const prom = require('prom-client');
 
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
 const clear = require('./clear.js');
-
+/*
 tap.test('get job stats', async (t) => {
   await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 100);
@@ -105,7 +105,7 @@ tap.test('get job stats', async (t) => {
   await q.stop();
   t.end();
 });
-
+*/
 tap.test('get job stats -1', async (t) => {
   await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 100);
@@ -175,6 +175,7 @@ tap.test('get job stats -1', async (t) => {
   }), 'queue error');
 
   await t.resolves(q.queueJob({
+    key: 'key222',
     name: 'testJob',
     payload: {
       foo: 'bar'
@@ -188,7 +189,7 @@ tap.test('get job stats -1', async (t) => {
       foo: 'bar'
     }
   });
-
+  const retryJob = await q.findJobs({ _id: jobId });
   await wait(3000);
 
   const stats = await q.stats();
@@ -199,7 +200,13 @@ tap.test('get job stats -1', async (t) => {
   t.same(stats3, { completed: 1 });
   const stats4 = await q.stats(-1);
   t.same(stats4, { processing: 1, completed: 1, waiting: 1, cancelled: 1, failed: 1 });
-  const stats5 = await q.stats(-1, undefined, jobId);
+  console.log('-----');
+  console.log('-----');
+  console.log('-----');
+  console.log(retryJob);
+  const stats5 = await q.stats(-1, undefined, retryJob.name);
+  console.log('+++');
+  console.log(stats5);
   t.same(stats5, { processing: 1 });
   // Wait so processing job can finish
   await wait(1000);
@@ -207,7 +214,7 @@ tap.test('get job stats -1', async (t) => {
   await q.stop();
   t.end();
 });
-
+/*
 tap.test('prom object will also track job processing time', async (t) => {
   await clear(mongoUrl, 'queue');
   const q = new Queue(mongoUrl, 'queue', 100, 1, prom);
@@ -374,3 +381,4 @@ tap.test('prom object will also track job statuses', async (t) => {
   await q.stop();
   t.end();
 });
+*/
