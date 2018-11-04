@@ -66,17 +66,16 @@ tap.test('queue - retry job', async (t) => {
 
 tap.test('queue - autoretries', async (t) => {
   await clear(mongoUrl, 'queue');
-  const q = new Queue(mongoUrl, 'queue', 50, 1, undefined, 30000, true);
+  const q = new Queue(mongoUrl, 'queue', 50);
   await q.start();
   let gated = true;
-  let counter = 0;
   const job = {
     name: 'testJob',
     payloadValidation: q.Joi.object().keys({
       foo: q.Joi.string()
     }),
+    autoretry: true,
     process(data) {
-      counter++;
       if (gated) {
         throw new Error('temporary error');
       }
