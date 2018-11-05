@@ -352,17 +352,27 @@ class Queue extends EventEmitter {
     return this.db.find(query).toArray();
   }
 
-  async stats(since, groupKey) {
-    if (!since) {
-      since = new Date().getTime() - (24 * 1000 * 60 * 60);
+  async stats(since, groupKey, jobName) {
+    const $match = {};
+    if (since !== -1) {
+      if (!since) {
+        since = new Date().getTime() - (24 * 1000 * 60 * 60);
+      }
+      since = new Date(since);
+      $match.createdOn = { $gt: since };
     }
-    since = new Date(since);
-    const $match = { createdOn: { $gt: since } };
     if (groupKey) {
       $match.groupKey = groupKey;
     }
+    if (jobName) {
+      $match.name = jobName;
+    }
+    const query = {};
+    if (Object.keys($match)) {
+      query.$match = $match;
+    }
     const stats = await this.db.aggregate([
-      { $match },
+      query,
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ]).toArray();
     // reduce results to an object like { waiting: x, processing: x2, ... }
