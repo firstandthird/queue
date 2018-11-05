@@ -183,7 +183,7 @@ class Queue extends EventEmitter {
       payload: data.payload,
       priority: job.priority || 0,
       name: data.name,
-      autoretry: data.autoretry,
+      autoretry: job.autoretry,
       retryCount: 0,
       runAfter: data.runAfter || new Date(),
       key: data.key || null,
@@ -299,10 +299,6 @@ class Queue extends EventEmitter {
         error
       }
     };
-    // autoretry always retries
-    if (job.autoretry && status !== 'completed') {
-      return this.retry(job._id);
-    }
     if (this.processingTime) {
       this.processingTime.observe({ jobName: job.name }, job.duration);
     }
@@ -310,6 +306,10 @@ class Queue extends EventEmitter {
       _id: job._id
     }, packet);
     this.notifyGroup(job);
+    // autoretry always retries
+    if (job.autoretry && status !== 'completed') {
+      return this.retry(job._id);
+    }
   }
 
   async retry(id) {
