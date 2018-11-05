@@ -183,7 +183,7 @@ class Queue extends EventEmitter {
       payload: data.payload,
       priority: job.priority || 0,
       name: data.name,
-      autoretry: job.autoretry,
+      autoretry: job.autoretry || false,
       retryCount: 0,
       runAfter: data.runAfter || new Date(),
       key: data.key || null,
@@ -305,11 +305,11 @@ class Queue extends EventEmitter {
     await this.db.update({
       _id: job._id
     }, packet);
-    this.notifyGroup(job);
     // autoretry always retries
     if (job.autoretry && status !== 'completed') {
       return this.retry(job._id);
     }
+    this.notifyGroup(job);
   }
 
   async retry(id) {
