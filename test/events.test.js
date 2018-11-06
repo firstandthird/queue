@@ -6,7 +6,7 @@ const wait = setTimeout[promisify.custom];
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/queue';
 const clear = require('./clear.js');
 tap.beforeEach(() => clear(mongoUrl, 'queue'));
-/*
+
 tap.test('creating a job emits "create" event', async (t) => {
   const q = new Queue(mongoUrl, 'queue', 5000);
   await q.start();
@@ -237,7 +237,7 @@ tap.test('when no jobs left in queue fire the "queue empty" event', async (t) =>
   await wait(300);
   t.end();
 });
-*/
+
 tap.test('groupKeys will emit when all members of the group have finished', async (t) => {
   const q = new Queue(mongoUrl, 'queue', 30);
   await q.start();
