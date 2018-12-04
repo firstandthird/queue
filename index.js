@@ -51,6 +51,7 @@ class Queue extends EventEmitter {
       this.conn = await MongoClient.connect(this.mongoUrl);
       this.db = await this.conn.collection(this.collectionName);
       this.db.createIndex({ status: 1, priority: 1, startTime: 1 }, { background: true });
+      this.db.createIndex({ createdOn: 1 }, { background: true });
     }
     this.exiting = false;
   }
