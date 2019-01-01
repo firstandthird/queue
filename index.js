@@ -103,7 +103,9 @@ class Queue extends EventEmitter {
       await wait(this.waitDelay);
       return this.process();
     }
-
+    if (await this.db.count({ status: 'processing' }) >= this.maxThreads) {
+      return;
+    }
     const job = await this.getNextJob();
 
     if (!job || !job.value) {
